@@ -1,4 +1,4 @@
-// 옥수하이테크 보안솔루션 - Main Process
+﻿// 옥수하이테크 보안솔루션 - Main Process
 const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, dialog, Notification } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
@@ -350,9 +350,9 @@ app.whenReady().then(async () => {
   const savedNickname = store.get('pcNickname');
   if (savedNickname) serverSync.setNickname(savedNickname);
 
-  // OS 엔진 시작
-  osEngine.startEngine();
-
+  // 블랙리스트 자동 설정 (앱 최초 실행 시 다운로드)
+  const setupBlocklist = require('./security/setup-blocklist');
+  setupBlocklist().catch(e => console.warn("[Main] 블랙리스트 설정 실패:", e.message));
   // 서버에 PC 등록 및 하트비트 시작
   try {
     try {
@@ -440,3 +440,4 @@ app.on('before-quit', async () => {
     await serverSync.sendLog('app_stop', 'info', 'JBMSOFT Security 앱 종료', {});
   } catch (_) {}
 });
+
