@@ -2,6 +2,11 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, dialog, Notification } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
+const serverSync = require('./security/server-sync');
+
+// --- 서버 동기화 상태 ---
+let heartbeatInterval = null;
+let pcId = null; // 서버에서 발급받은 PC UUID
 
 // --- 스토어 초기화 ---
 const store = new Store({
@@ -219,17 +224,38 @@ ipcMain.handle('get-system-info', () => {
   };
 });
 
-ipcMain.handle('add-log', (event, logEntry) => {
+ipcMain.handle('add-log', async (event, logEntry) => {
+  // 1. 로컬 저장
   const logs = store.get('securityLogs', []);
   logs.unshift({
     ...logEntry,
     id: Date.now().toString(),
     timestamp: new Date().toISOString()
   });
-  // 최대 1000개 유지
   if (logs.length > 1000) logs.splice(1000);
   store.set('securityLogs', logs);
+
+  // 2. 서버 전송 (비동기, 실패해도 로컬은 저장됨)
+  serverSync.sendLog(
+    logEntry.type || logEntry.event || 'security_event',
+    logEntry.level || logEntry.severity || 'info',
+    logEntry.message || logEntry.action || '',
+    { ...logEntry }
+  ).catch(() => {}); // 실패 시 무시 (오프라인 허용)
+
   return true;
+});
+
+// 서버로 승인 요청 전송
+ipcMain.handle('server-request-approval', async (event, { fileName, destination, reason }) => {
+  const result = await serverSync.requestApproval(fileName, destination, reason);
+  return result;
+});
+
+// 서버에서 보안 정책 가져오기
+ipcMain.handle('server-fetch-policy', async () => {
+  const policy = await serverSync.fetchPolicy();
+  return policy;
 });
 
 ipcMain.handle('add-approval-request', (event, request) => {
@@ -276,7 +302,7 @@ ipcMain.handle('show-notification', (event, title, body) => {
 });
 
 // --- 앱 시작 ---
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createSplashWindow();
   createMainWindow();
 
@@ -289,6 +315,26 @@ app.whenReady().then(() => {
     createTray();
   }, 3500);
 
+  // 서버에 PC 등록 및 하트비트 시작
+  try {
+    pcId = await serverSync.registerOrHeartbeat();
+    if (pcId) {
+      console.log('[Main] 서버 등록 완료, PC ID:', pcId);
+      // 앱 시작 이벤트 로그 전송
+      await serverSync.sendLog('app_start', 'info', 'JBMSOFT Security 앱 시작', {
+        hostname: require('os').hostname(),
+        user: require('os').userInfo().username
+      });
+    }
+
+    // 30초마다 하트비트 전송 (온라인 상태 유지)
+    heartbeatInterval = setInterval(async () => {
+      await serverSync.registerOrHeartbeat();
+    }, 30 * 1000);
+  } catch (err) {
+    console.warn('[Main] 서버 연결 실패, 오프라인 모드로 실행:', err.message);
+  }
+
   app.on('activate', () => {
     showMainWindow();
   });
@@ -298,6 +344,12 @@ app.on('window-all-closed', () => {
   // 트레이에서 계속 실행
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   isQuitting = true;
+  // 하트비트 중단
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  // 앱 종료 로그 전송
+  try {
+    await serverSync.sendLog('app_stop', 'info', 'JBMSOFT Security 앱 종료', {});
+  } catch (_) {}
 });
