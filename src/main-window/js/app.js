@@ -607,6 +607,21 @@ async function registerThisPC() {
   showToast(t('toast_pc_added'), 'success');
 }
 
+function unlockUninstall() {
+  pendingAuthAction = 'uninstall';
+  openModal('modalAdminAuth');
+  setTimeout(() => document.getElementById('authPwInput')?.focus(), 100);
+}
+  
+async function saveNickname() {
+  const nickname = document.getElementById('pcNickname').value.trim();
+  if (!nickname) { showToast(t('toast_fill_all') || '닉네입을 입력해주세요', 'error'); return; }
+  
+  allConfig.pcNickname = nickname;
+  if (window.electronAPI) await window.electronAPI.setStore('pcNickname', nickname);
+  showToast('닉네임이 저장되었습니다.', 'success');
+}
+
 // ─── 비밀번호 ───
 function togglePw(id) {
   const el = document.getElementById(id);
@@ -832,6 +847,14 @@ function setupIpcListeners() {
     openModal('modalAdminAuth');
     setTimeout(() => document.getElementById('authPwInput')?.focus(), 100);
   });
+  
+  // 닉네임 로드
+  if (allConfig.pcNickname) {
+      setTimeout(() => {
+          const el = document.getElementById('pcNickname');
+          if (el) el.value = allConfig.pcNickname;
+      }, 500);
+  }
 }
 
 async function confirmAuth() {
@@ -847,9 +870,23 @@ async function confirmAuth() {
   }
   closeModal('modalAdminAuth');
   document.getElementById('authPwInput').value = '';
+  
   if (pendingAuthAction === 'quit') {
     if (window.electronAPI) window.electronAPI.quitApp();
+  } else if (pendingAuthAction === 'pause') {
+    showToast('보안 감시가 일시 중지되었습니다. (주의: 재시작 시 자동 활성화됩니다)', 'warning');
+    // 실제 pause 로직을 구현할 수 있습니다 (IPC 전달)
+  } else if (pendingAuthAction === 'uninstall') {
+    if (window.electronAPI) {
+        const success = await window.electronAPI.allowUninstall(true);
+        if (success) {
+            showToast('삭제 보호가 해제되었습니다. 이제 프로그램 추가/제거에서 삭제할 수 있습니다. (PC 재부팅 시 다시 보호됨)', 'warning');
+        } else {
+            showToast('레지스트리 접근 실패. 관리자 권한으로 실행 중인지 확인하세요.', 'error');
+        }
+    }
   }
+  
   pendingAuthAction = null;
 }
 

@@ -306,7 +306,7 @@
                     return `
                     <tr>
                         <td style="font-weight: 500;">${pc.hostname}</td>
-                        <td style="color: var(--primary);">${pc.nickname || '-'}</td>
+                        <td style="color: var(--primary);">${pc.username || '-'}</td>
                         <td style="color: var(--text-muted); font-family: monospace;">${pc.mac_address}</td>
                         <td style="font-family: monospace;">${pc.ip_address || '-'}</td>
                         <td style="color: ${isOnline ? 'var(--success)' : 'var(--text-muted)'}">${isOnline ? '● Online' : '○ Offline'}</td>

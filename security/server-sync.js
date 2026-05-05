@@ -9,6 +9,12 @@ const http = require('http');
 const API_BASE = 'https://oksooht-security-api.vercel.app/api';
 const API_SECRET = 'oksooht-security-2026';
 
+let currentNickname = '';
+
+function setNickname(name) {
+    currentNickname = name;
+}
+
 // 현재 PC의 고유 식별 정보 수집
 function getPCInfo() {
   const interfaces = os.networkInterfaces();
@@ -31,7 +37,7 @@ function getPCInfo() {
     mac_address: macAddress || 'unknown-' + Math.random().toString(36).substr(2, 9),
     ip_address: ipAddress,
     os_version: `${os.platform()} ${os.release()}`,
-    user_name: os.userInfo().username,
+    username: currentNickname || os.userInfo().username,
     app_version: '1.0.0'
   };
 }
@@ -170,5 +176,6 @@ module.exports = {
   registerOrHeartbeat,
   sendLog,
   requestApproval,
-  fetchPolicy
+  fetchPolicy,
+  setNickname
 };

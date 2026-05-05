@@ -21,6 +21,19 @@
     "bcryptjs": "^2.4.3",
     "chokidar": "^3.5.3",
     "electron-store": "^5.2.0",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "winreg": "^1.2.5"
+  },
+  "build": {
+    "appId": "com.jbmsoft.security",
+    "productName": "JBMSOFT Security",
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "include": "build/installer.nsh"
+    }
   }
 }

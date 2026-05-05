@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   toggleMaximize: () => ipcRenderer.invoke('window-toggle-maximize'),
   closeWindow: () => ipcRenderer.invoke('window-close'),
   quitApp: () => ipcRenderer.invoke('quit-app'),
+  allowUninstall: (allow) => ipcRenderer.invoke('allow-uninstall', allow),
 
   // 시스템 정보
   getSystemInfo: () => ipcRenderer.invoke('get-system-info'),
