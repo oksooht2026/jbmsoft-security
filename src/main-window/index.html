@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JBMSOFT Security Manager</title>
+  <link rel="stylesheet" href="styles/global.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- 커스텀 타이틀 바 -->
+<div class="titlebar" id="titlebar">
+  <div class="titlebar-left">
+    <img src="../assets/logo/jbmsoft-logo.png" alt="JBM" class="titlebar-logo" onerror="this.style.display='none'">
+    <span class="titlebar-title"><span data-i18n="app_title">JBMSOFT Security</span></span>
+    <span class="titlebar-badge" id="statusBadge">● <span data-i18n="status_active">보안 활성화</span></span>
+  </div>
+  <div class="titlebar-center"></div>
+  <div class="titlebar-right">
+    <!-- 언어 전환 -->
+    <div class="lang-switcher">
+      <button class="lang-btn active" id="btnKo" onclick="switchLang('ko')">KO</button>
+      <button class="lang-btn" id="btnEn" onclick="switchLang('en')">EN</button>
+    </div>
+    <!-- 창 버튼 -->
+    <button class="win-btn" id="btnMin" onclick="window.electronAPI.minimizeWindow()" title="최소화">─</button>
+    <button class="win-btn" id="btnMax" onclick="window.electronAPI.toggleMaximize()" title="최대화">□</button>
+    <button class="win-btn close-btn" id="btnClose" onclick="window.electronAPI.closeWindow()" title="트레이로">✕</button>
+  </div>
+</div>
+
+<!-- 메인 레이아웃 -->
+<div class="app-layout">
+
+  <!-- 사이드바 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="security-score-ring">
+        <svg viewBox="0 0 80 80" class="score-svg">
+          <circle cx="40" cy="40" r="34" class="score-track"/>
+          <circle cx="40" cy="40" r="34" class="score-fill" id="scoreFill"/>
+        </svg>
+        <div class="score-inner">
+          <span class="score-value" id="scoreValue">98</span>
+          <span class="score-label" data-i18n="score_label">보안점수</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-tab="dashboard" onclick="switchTab('dashboard')">
+        <span class="nav-icon">⊞</span>
+        <span class="nav-text" data-i18n="nav_dashboard">대시보드</span>
+      </button>
+      <button class="nav-item" data-tab="password" onclick="switchTab('password')">
+        <span class="nav-icon">🔑</span>
+        <span class="nav-text" data-i18n="nav_password">비밀번호 & 인증</span>
+      </button>
+      <button class="nav-item" data-tab="filesec" onclick="switchTab('filesec')">
+        <span class="nav-icon">📁</span>
+        <span class="nav-text" data-i18n="nav_filesec">파일 보안</span>
+      </button>
+      <button class="nav-item" data-tab="network" onclick="switchTab('network')">
+        <span class="nav-icon">🌐</span>
+        <span class="nav-text" data-i18n="nav_network">네트워크 & 메일</span>
+      </button>
+      <button class="nav-item" data-tab="trustedpc" onclick="switchTab('trustedpc')">
+        <span class="nav-icon">🖥️</span>
+        <span class="nav-text" data-i18n="nav_trustedpc">허용 PC 관리</span>
+        <span class="nav-badge" id="pcBadge" style="display:none"></span>
+      </button>
+      <button class="nav-item" data-tab="approval" onclick="switchTab('approval')">
+        <span class="nav-icon">✅</span>
+        <span class="nav-text" data-i18n="nav_approval">관리자 승인</span>
+        <span class="nav-badge" id="approvalBadge" style="display:none">0</span>
+      </button>
+      <button class="nav-item" data-tab="logs" onclick="switchTab('logs')">
+        <span class="nav-icon">📋</span>
+        <span class="nav-text" data-i18n="nav_logs">보안 로그</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sys-info-mini" id="sysInfoMini">
+        <div class="sys-row"><span class="sys-icon">💻</span><span id="sysHostname">로딩 중...</span></div>
+        <div class="sys-row"><span class="sys-icon">👤</span><span id="sysUser">-</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 메인 콘텐츠 영역 -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ====== 탭: 대시보드 ====== -->
+    <div class="tab-panel active" id="tab-dashboard">
+      <div class="page-header">
+        <h1 class="page-title" data-i18n="nav_dashboard">대시보드</h1>
+        <p class="page-sub" data-i18n="dash_sub">실시간 보안 현황을 한눈에 확인하세요</p>
+      </div>
+
+      <!-- 상태 카드 4개 -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon green">🛡️</div>
+          <div class="stat-body">
+            <div class="stat-value" id="statBlocked">0</div>
+            <div class="stat-label" data-i18n="stat_blocked">오늘 차단 이벤트</div>
+          </div>
+          <div class="stat-trend up">+2 <span data-i18n="stat_today">오늘</span></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon blue">🖥️</div>
+          <div class="stat-body">
+            <div class="stat-value" id="statPCs">0</div>
+            <div class="stat-label" data-i18n="stat_pcs">허용된 PC</div>
+          </div>
+          <div class="stat-trend">─</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon yellow">⏳</div>
+          <div class="stat-body">
+            <div class="stat-value" id="statPending">0</div>
+            <div class="stat-label" data-i18n="stat_pending">승인 대기</div>
+          </div>
+          <div class="stat-trend" id="pendingTrend">─</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon cyan">📧</div>
+          <div class="stat-body">
+            <div class="stat-value" id="statWhitelist">0</div>
+            <div class="stat-label" data-i18n="stat_whitelist">메일 화이트리스트</div>
+          </div>
+          <div class="stat-trend">─</div>
+        </div>
+      </div>
+
+      <!-- 보안 현황 + 최근 로그 -->
+      <div class="dashboard-grid">
+        <!-- 보안 정책 현황 -->
+        <div class="card">
+          <div class="card-header">
+            <h3 data-i18n="dash_policy">보안 정책 현황</h3>
+            <span class="card-action" onclick="switchTab('filesec')" data-i18n="btn_detail">상세 설정 →</span>
+          </div>
+          <div class="policy-list" id="dashPolicyList">
+            <!-- JS로 주입 -->
+          </div>
+        </div>
+
+        <!-- 최근 보안 로그 -->
+        <div class="card">
+          <div class="card-header">
+            <h3 data-i18n="dash_recent_log">최근 보안 이벤트</h3>
+            <span class="card-action" onclick="switchTab('logs')" data-i18n="btn_all">전체 보기 →</span>
+          </div>
+          <div class="recent-log-list" id="dashLogList">
+            <div class="empty-state" data-i18n="no_events">이벤트 없음</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 허용 PC 현황 -->
+      <div class="card">
+        <div class="card-header">
+          <h3 data-i18n="dash_trusted_pcs">허용 PC 현황</h3>
+          <span class="card-action" onclick="switchTab('trustedpc')" data-i18n="btn_manage">관리 →</span>
+        </div>
+        <div class="pc-grid" id="dashPcGrid">
+          <div class="empty-state" data-i18n="no_pcs">등록된 PC가 없습니다</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 탭: 비밀번호 & 인증 ====== -->
+    <div class="tab-panel" id="tab-password">
+      <div class="page-header">
+        <h1 class="page-title" data-i18n="nav_password">비밀번호 & 인증</h1>
+        <p class="page-sub" data-i18n="pw_sub">관리자 비밀번호 및 인증 정책을 설정합니다</p>
+      </div>
+
+      <div class="settings-grid">
+        <!-- 관리자 비밀번호 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🔐 <span data-i18n="pw_admin_title">관리자 비밀번호</span></h3>
+          </div>
+          <div class="form-group">
+            <label data-i18n="pw_current">현재 비밀번호</label>
+            <div class="input-wrap">
+              <input type="password" id="pwCurrent" class="form-input" placeholder="••••••••">
+              <button class="input-icon-btn" onclick="togglePw('pwCurrent')">👁️</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label data-i18n="pw_new">새 비밀번호</label>
+            <div class="input-wrap">
+              <input type="password" id="pwNew" class="form-input" placeholder="••••••••">
+              <button class="input-icon-btn" onclick="togglePw('pwNew')">👁️</button>
+            </div>
+            <div class="pw-strength-bar">
+              <div class="pw-strength-fill" id="pwStrengthFill"></div>
+            </div>
+            <span class="pw-strength-label" id="pwStrengthLabel"></span>
+          </div>
+          <div class="form-group">
+            <label data-i18n="pw_confirm">비밀번호 확인</label>
+            <div class="input-wrap">
+              <input type="password" id="pwConfirm" class="form-input" placeholder="••••••••">
+              <button class="input-icon-btn" onclick="togglePw('pwConfirm')">👁️</button>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn-primary" onclick="saveAdminPassword()" data-i18n="btn_save">저장</button>
+          </div>
+        </div>
+
+        <!-- 잠금 정책 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>⏱️ <span data-i18n="pw_lock_policy">잠금 정책</span></h3>
+          </div>
+          <div class="form-group">
+            <label data-i18n="pw_auto_lock">자동 잠금 시간 (분)</label>
+            <div class="slider-wrap">
+              <input type="range" id="autoLockSlider" min="5" max="120" step="5" value="30" class="form-slider" oninput="updateAutoLock(this.value)">
+              <span class="slider-value" id="autoLockValue">30분</span>
+            </div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title" data-i18n="pw_screen_lock">화면 잠금 시 보안 활성화</span>
+              <span class="toggle-desc" data-i18n="pw_screen_lock_desc">화면 보호기 실행 시 자동으로 보안 강화</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleScreenLock" checked>
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title" data-i18n="pw_fail_limit">로그인 실패 횟수 제한</span>
+              <span class="toggle-desc" data-i18n="pw_fail_limit_desc">5회 이상 실패 시 관리자에게 알림</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleFailLimit" checked>
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 사용자 목록 -->
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>👥 <span data-i18n="pw_users">사용자 계정 관리</span></h3>
+            <button class="btn-primary btn-sm" onclick="openAddUserModal()" data-i18n="btn_add_user">+ 사용자 추가</button>
+          </div>
+          <div class="user-table-wrap">
+            <table class="data-table" id="userTable">
+              <thead>
+                <tr>
+                  <th data-i18n="tbl_name">이름</th>
+                  <th data-i18n="tbl_dept">부서</th>
+                  <th data-i18n="tbl_role">역할</th>
+                  <th data-i18n="tbl_last_login">마지막 로그인</th>
+                  <th data-i18n="tbl_status">상태</th>
+                  <th data-i18n="tbl_actions">작업</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody">
+                <!-- JS 주입 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 탭: 파일 보안 ====== -->
+    <div class="tab-panel" id="tab-filesec">
+      <div class="page-header">
+        <h1 class="page-title" data-i18n="nav_filesec">파일 보안</h1>
+        <p class="page-sub" data-i18n="fs_sub">파일 복사·이동 차단 및 감시 정책을 설정합니다</p>
+      </div>
+
+      <div class="settings-grid">
+        <!-- 핵심 차단 설정 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>🛡️ <span data-i18n="fs_guard_title">파일 보호 정책</span></h3>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title" data-i18n="fs_clipboard">클립보드 파일 복사 차단</span>
+              <span class="toggle-desc" data-i18n="fs_clipboard_desc">파일을 클립보드로 복사하는 동작을 차단합니다</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleClipboard" checked onchange="saveSecurity()">
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title" data-i18n="fs_file_guard">파일 보안 감시 활성화</span>
+              <span class="toggle-desc" data-i18n="fs_file_guard_desc">지정 폴더의 파일 변경·이동을 실시간 감시합니다</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleFileGuard" checked onchange="saveSecurity()">
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title" data-i18n="fs_usb">USB 저장장치 차단</span>
+              <span class="toggle-desc" data-i18n="fs_usb_desc">이동식 USB 드라이브로의 파일 전송을 차단합니다</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleUSB" onchange="saveSecurity()">
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title" data-i18n="fs_print_guard">화면 캡처 감지</span>
+              <span class="toggle-desc" data-i18n="fs_print_guard_desc">스크린샷·화면 녹화 프로그램 실행 시 경고합니다</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="togglePrintGuard" checked onchange="saveSecurity()">
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- 차단 확장자 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>📄 <span data-i18n="fs_ext_title">차단 파일 형식</span></h3>
+          </div>
+          <p class="card-desc" data-i18n="fs_ext_desc">외부로 전송을 차단할 파일 확장자를 설정합니다</p>
+          <div class="tag-input-area" id="extTagArea">
+            <!-- 태그들 JS 주입 -->
+          </div>
+          <div class="input-add-row">
+            <input type="text" id="extInput" class="form-input" placeholder="예: pdf, docx, xlsx">
+            <button class="btn-primary btn-sm" onclick="addExtension()" data-i18n="btn_add">추가</button>
+          </div>
+        </div>
+
+        <!-- 감시 폴더 -->
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>📂 <span data-i18n="fs_watch_title">감시 폴더 설정</span></h3>
+            <button class="btn-primary btn-sm" onclick="addWatchFolder()" data-i18n="btn_add_folder">+ 폴더 추가</button>
+          </div>
+          <div class="folder-list" id="watchFolderList">
+            <div class="empty-state" data-i18n="no_folders">감시 폴더가 없습니다. 폴더를 추가하세요.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 탭: 네트워크 & 메일 ====== -->
+    <div class="tab-panel" id="tab-network">
+      <div class="page-header">
+        <h1 class="page-title" data-i18n="nav_network">네트워크 & 메일</h1>
+        <p class="page-sub" data-i18n="net_sub">메일 전송 차단 및 네트워크 보안 정책을 설정합니다</p>
+      </div>
+
+      <div class="settings-grid">
+        <!-- 메일 보안 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>📧 <span data-i18n="net_mail_title">메일 전송 보안</span></h3>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title" data-i18n="net_mail_guard">메일 첨부파일 전송 차단</span>
+              <span class="toggle-desc" data-i18n="net_mail_guard_desc">화이트리스트 외 수신자에게 첨부파일 전송을 차단합니다</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleMailGuard" checked onchange="saveNetwork()">
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="toggle-title" data-i18n="net_cloud_block">외부 클라우드 업로드 차단</span>
+              <span class="toggle-desc" data-i18n="net_cloud_block_desc">구글 드라이브, 드롭박스 등 클라우드 업로드를 차단합니다</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleCloud" onchange="saveNetwork()">
+              <span class="toggle-knob"></span>
+            </label>
+          </div>
+          <div class="form-group mt-16">
+            <label data-i18n="net_smtp_ports">감시 SMTP 포트</label>
+            <input type="text" id="smtpPorts" class="form-input" value="25, 465, 587" placeholder="25, 465, 587">
+          </div>
+        </div>
+
+        <!-- 이메일 화이트리스트 -->
+        <div class="card">
+          <div class="card-header">
+            <h3>✉️ <span data-i18n="net_whitelist_title">메일 화이트리스트</span></h3>
+          </div>
+          <p class="card-desc" data-i18n="net_whitelist_desc">파일 첨부 전송이 허용된 이메일 주소 또는 도메인</p>
+          <div class="whitelist-list" id="emailWhitelistArea">
+            <!-- JS 주입 -->
+          </div>
+          <div class="input-add-row">
+            <input type="text" id="emailInput" class="form-input" placeholder="예: @jbmsoft.com 또는 user@company.com">
+            <button class="btn-primary btn-sm" onclick="addEmailWhitelist()" data-i18n="btn_add">추가</button>
+          </div>
+        </div>
+
+        <!-- 네트워크 상태 -->
+        <div class="card full-width">
+          <div class="card-header">
+            <h3>🌐 <span data-i18n="net_iface_title">현재 네트워크 인터페이스</span></h3>
+          </div>
+          <div class="network-iface-grid" id="networkIfaceGrid">
+            <div class="empty-state" data-i18n="loading">로딩 중...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 탭: 허용 PC 관리 ====== -->
+    <div class="tab-panel" id="tab-trustedpc">
+      <div class="page-header">
+        <h1 class="page-title" data-i18n="nav_trustedpc">허용 PC 관리</h1>
+        <p class="page-sub" data-i18n="pc_sub">보안 파일 이동이 허용된 PC 목록을 관리합니다</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>🖥️ <span data-i18n="pc_list_title">허용 PC 목록</span></h3>
+          <div class="header-actions">
+            <input type="text" class="form-input search-input" id="pcSearch" placeholder="PC 검색..." oninput="filterPCs(this.value)">
+            <button class="btn-primary" onclick="openAddPCModal()" data-i18n="btn_add_pc">+ PC 등록</button>
+          </div>
+        </div>
+        <div class="pc-table-wrap">
+          <table class="data-table" id="pcTable">
+            <thead>
+              <tr>
+                <th data-i18n="pc_col_name">PC 이름</th>
+                <th data-i18n="pc_col_ip">IP 주소</th>
+                <th data-i18n="pc_col_mac">MAC 주소</th>
+                <th data-i18n="pc_col_dept">부서</th>
+                <th data-i18n="pc_col_added">등록일</th>
+                <th data-i18n="pc_col_status">상태</th>
+                <th data-i18n="tbl_actions">작업</th>
+              </tr>
+            </thead>
+            <tbody id="pcTableBody">
+            </tbody>
+          </table>
+          <div class="empty-state" id="pcEmptyState" data-i18n="no_pcs">등록된 PC가 없습니다</div>
+        </div>
+      </div>
+
+      <!-- 현재 이 PC 정보 -->
+      <div class="card mt-16">
+        <div class="card-header">
+          <h3>📡 <span data-i18n="pc_this_pc">현재 PC 정보</span></h3>
+          <button class="btn-primary btn-sm" onclick="registerThisPC()" data-i18n="btn_register_this">이 PC 등록</button>
+        </div>
+        <div class="this-pc-info" id="thisPCInfo">
+          <div class="empty-state" data-i18n="loading">로딩 중...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 탭: 관리자 승인 ====== -->
+    <div class="tab-panel" id="tab-approval">
+      <div class="page-header">
+        <h1 class="page-title" data-i18n="nav_approval">관리자 승인</h1>
+        <p class="page-sub" data-i18n="ap_sub">파일 전송 예외 요청을 검토하고 승인/거부합니다</p>
+      </div>
+
+      <!-- 필터 탭 -->
+      <div class="filter-tabs" id="approvalFilters">
+        <button class="filter-tab active" onclick="filterApprovals('all')" data-i18n="ap_all">전체</button>
+        <button class="filter-tab" onclick="filterApprovals('pending')" data-i18n="ap_pending">대기 중 <span id="pendingCount" class="filter-count">0</span></button>
+        <button class="filter-tab" onclick="filterApprovals('approved')" data-i18n="ap_approved">승인됨</button>
+        <button class="filter-tab" onclick="filterApprovals('rejected')" data-i18n="ap_rejected">거부됨</button>
+      </div>
+
+      <!-- 요청 목록 -->
+      <div class="approval-list" id="approvalList">
+        <div class="empty-state" data-i18n="no_requests">대기 중인 요청이 없습니다</div>
+      </div>
+
+      <!-- 테스트: 승인 요청 추가 -->
+      <div class="card mt-16">
+        <div class="card-header">
+          <h3>🧪 <span data-i18n="ap_test">승인 요청 테스트</span></h3>
+        </div>
+        <div class="form-group">
+          <label data-i18n="ap_test_desc">파일 전송 승인 요청을 시뮬레이션합니다</label>
+          <div class="input-add-row">
+            <input type="text" id="testFileName" class="form-input" placeholder="파일명: report_2025.xlsx">
+            <input type="text" id="testRecipient" class="form-input" placeholder="수신자: partner@ext.com">
+            <button class="btn-warning btn-sm" onclick="addTestRequest()" data-i18n="btn_test_req">요청 추가</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== 탭: 보안 로그 ====== -->
+    <div class="tab-panel" id="tab-logs">
+      <div class="page-header">
+        <h1 class="page-title" data-i18n="nav_logs">보안 로그</h1>
+        <p class="page-sub" data-i18n="log_sub">모든 보안 이벤트 이력을 확인합니다</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>📋 <span data-i18n="log_title">이벤트 로그</span></h3>
+          <div class="header-actions">
+            <select class="form-select" id="logFilter" onchange="filterLogs(this.value)">
+              <option value="all" data-i18n="log_all">전체</option>
+              <option value="blocked" data-i18n="log_blocked">차단</option>
+              <option value="allowed" data-i18n="log_allowed">허용</option>
+              <option value="warning" data-i18n="log_warning">경고</option>
+            </select>
+            <input type="text" class="form-input search-input" id="logSearch" placeholder="검색..." oninput="searchLogs(this.value)">
+            <button class="btn-outline btn-sm" onclick="exportLogs()" data-i18n="btn_export">내보내기</button>
+            <button class="btn-danger btn-sm" onclick="clearLogs()" data-i18n="btn_clear_log">로그 초기화</button>
+          </div>
+        </div>
+        <div class="log-list" id="logList">
+          <div class="empty-state" data-i18n="no_logs">보안 로그가 없습니다</div>
+        </div>
+        <div class="log-pagination">
+          <button class="btn-outline btn-sm" id="logPrevBtn" onclick="logPageChange(-1)" data-i18n="btn_prev">이전</button>
+          <span id="logPageText">1 / 1</span>
+          <button class="btn-outline btn-sm" id="logNextBtn" onclick="logPageChange(1)" data-i18n="btn_next">다음</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ====== 모달: PC 등록 ====== -->
+<div class="modal-overlay" id="modalAddPC" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 data-i18n="modal_add_pc_title">PC 등록</h3>
+      <button class="modal-close" onclick="closeModal('modalAddPC')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label data-i18n="pc_col_name">PC 이름</label>
+        <input type="text" id="addPCName" class="form-input" placeholder="DESKTOP-JBMSOFT01">
+      </div>
+      <div class="form-group">
+        <label data-i18n="pc_col_ip">IP 주소</label>
+        <input type="text" id="addPCIP" class="form-input" placeholder="192.168.1.100">
+      </div>
+      <div class="form-group">
+        <label data-i18n="pc_col_mac">MAC 주소</label>
+        <input type="text" id="addPCMAC" class="form-input" placeholder="AA:BB:CC:DD:EE:FF">
+      </div>
+      <div class="form-group">
+        <label data-i18n="pc_col_dept">부서</label>
+        <input type="text" id="addPCDept" class="form-input" placeholder="개발팀">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('modalAddPC')" data-i18n="btn_cancel">취소</button>
+      <button class="btn-primary" onclick="confirmAddPC()" data-i18n="btn_register">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 모달: 사용자 추가 ====== -->
+<div class="modal-overlay" id="modalAddUser" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 data-i18n="modal_add_user_title">사용자 추가</h3>
+      <button class="modal-close" onclick="closeModal('modalAddUser')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label data-i18n="tbl_name">이름</label>
+        <input type="text" id="addUserName" class="form-input" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label data-i18n="tbl_dept">부서</label>
+        <input type="text" id="addUserDept" class="form-input" placeholder="개발팀">
+      </div>
+      <div class="form-group">
+        <label data-i18n="tbl_role">역할</label>
+        <select id="addUserRole" class="form-select">
+          <option value="user" data-i18n="role_user">일반 사용자</option>
+          <option value="admin" data-i18n="role_admin">관리자</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label data-i18n="user_email">이메일</label>
+        <input type="email" id="addUserEmail" class="form-input" placeholder="user@jbmsoft.com">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('modalAddUser')" data-i18n="btn_cancel">취소</button>
+      <button class="btn-primary" onclick="confirmAddUser()" data-i18n="btn_add">추가</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== 모달: 관리자 인증 ====== -->
+<div class="modal-overlay" id="modalAdminAuth" style="display:none">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3>🔐 <span data-i18n="modal_auth_title">관리자 인증</span></h3>
+    </div>
+    <div class="modal-body">
+      <p class="modal-desc" data-i18n="modal_auth_desc">이 작업을 수행하려면 관리자 비밀번호가 필요합니다.</p>
+      <div class="form-group">
+        <label data-i18n="pw_admin_pw">관리자 비밀번호</label>
+        <input type="password" id="authPwInput" class="form-input" placeholder="••••••••" onkeydown="if(event.key==='Enter') confirmAuth()">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-outline" onclick="closeModal('modalAdminAuth')" data-i18n="btn_cancel">취소</button>
+      <button class="btn-primary" onclick="confirmAuth()" data-i18n="btn_confirm">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 토스트 알림 -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="js/i18n.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

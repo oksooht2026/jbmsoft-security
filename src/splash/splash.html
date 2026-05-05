@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JBMSOFT Security</title>
+  <link rel="stylesheet" href="splash.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="splash-container">
+    <!-- 배경 파티클 -->
+    <div class="particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
+
+    <!-- 메인 콘텐츠 -->
+    <div class="splash-content">
+      <!-- 로고 -->
+      <div class="logo-wrapper">
+        <div class="logo-glow"></div>
+        <img src="../assets/logo/jbmsoft-logo.png" alt="JBMSOFT" class="logo-img" onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block'">
+        <div id="logo-text" class="logo-text-fallback" style="display:none">
+          <span class="logo-jbm">JBM</span><span class="logo-soft">SOFT</span>
+        </div>
+      </div>
+
+      <!-- 제품 이름 -->
+      <div class="product-name">
+        <span class="product-icon">🛡️</span>
+        <span class="product-title">Security</span>
+      </div>
+      <div class="product-sub">사내 보안 관리 시스템 v1.0</div>
+
+      <!-- 로딩 바 -->
+      <div class="loading-section">
+        <div class="loading-bar-wrap">
+          <div class="loading-bar" id="loadingBar"></div>
+        </div>
+        <div class="loading-status" id="loadingStatus">초기화 중...</div>
+      </div>
+    </div>
+
+    <!-- 하단 -->
+    <div class="splash-footer">
+      <span>© 2025 JBMSOFT. All Rights Reserved.</span>
+    </div>
+  </div>
+
+  <script>
+    const statusMessages = [
+      '보안 모듈 로드 중...',
+      '파일 감시 엔진 시작 중...',
+      '네트워크 인터페이스 확인 중...',
+      '허용 PC 목록 동기화 중...',
+      '보안 정책 적용 중...',
+      '시작 완료!'
+    ];
+
+    let step = 0;
+    const bar = document.getElementById('loadingBar');
+    const status = document.getElementById('loadingStatus');
+    const totalSteps = statusMessages.length;
+
+    function animate() {
+      if (step < totalSteps) {
+        const progress = ((step + 1) / totalSteps) * 100;
+        bar.style.width = progress + '%';
+        status.textContent = statusMessages[step];
+        step++;
+        setTimeout(animate, 500);
+      }
+    }
+
+    setTimeout(animate, 300);
+  </script>
+</body>
+</html>

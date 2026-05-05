@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JBMSOFT Security — 포트폴리오 데모</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary:#080c18;--bg-secondary:#0d1225;--bg-card:#111827;--bg-input:#0d1628;
+  --border:rgba(59,130,246,0.18);--border-bright:rgba(59,130,246,0.4);
+  --blue:#3b82f6;--blue-dark:#2563eb;--cyan:#06b6d4;--green:#10b981;
+  --yellow:#f59e0b;--red:#ef4444;--purple:#8b5cf6;
+  --text-primary:#e2e8f0;--text-second:#94a3b8;--text-muted:#475569;
+  --radius-sm:8px;--radius-md:12px;--radius-lg:18px;
+  --shadow-card:0 4px 24px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.03) inset;
+  --sidebar-width:220px;--titlebar-height:40px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;min-height:100%;overflow-x:hidden}
+body{font-family:'Noto Sans KR',-apple-system,sans-serif;background:var(--bg-primary);color:var(--text-primary);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+
+/* NAV */
+.demo-nav{position:sticky;top:0;z-index:999;background:rgba(8,12,24,0.97);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:4px;padding:8px 16px;backdrop-filter:blur(20px)}
+.demo-nav-title{font-size:12px;font-weight:700;color:var(--text-muted);margin-right:12px;white-space:nowrap}
+.tab-btn{padding:5px 14px;border-radius:6px;border:none;background:transparent;color:var(--text-muted);font-size:12px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tab-btn.active{background:var(--blue);color:white}
+.tab-btn:hover:not(.active){background:rgba(59,130,246,0.1);color:var(--text-primary)}
+
+/* SECTION */
+.section{display:none;padding:28px 28px 40px}
+.section.active{display:block}
+
+/* TITLEBAR */
+.titlebar{height:40px;background:rgba(8,12,24,0.95);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;user-select:none}
+.titlebar-left{display:flex;align-items:center;gap:10px}
+.titlebar-logo-text{font-size:14px;font-weight:900;letter-spacing:-0.5px}
+.titlebar-logo-jbm{color:var(--blue)}.titlebar-logo-soft{color:var(--text-primary)}
+.titlebar-badge{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--green);background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.25);padding:2px 8px;border-radius:999px}
+.titlebar-right{display:flex;align-items:center;gap:8px}
+.lang-switcher{display:flex;background:rgba(255,255,255,0.05);border-radius:6px;padding:2px}
+.lang-b{padding:2px 8px;border-radius:4px;border:none;font-size:10px;font-weight:600;cursor:pointer;background:var(--blue);color:white}
+.win-btns{display:flex;gap:4px}
+.wb{width:24px;height:18px;border-radius:3px;border:none;background:rgba(255,255,255,0.07);color:var(--text-muted);font-size:10px;cursor:pointer}
+
+/* PAGE WRAPPER */
+.page-wrapper{display:flex;background:var(--bg-secondary);min-height:680px;background-image:radial-gradient(ellipse at 80% 0%,rgba(59,130,246,0.04) 0%,transparent 60%),radial-gradient(ellipse at 0% 80%,rgba(6,182,212,0.03) 0%,transparent 50%)}
+
+/* SIDEBAR */
+.sidebar{width:220px;background:linear-gradient(180deg,#0a0e1a 0%,#080c18 100%);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:20px 16px 16px;display:flex;justify-content:center;border-bottom:1px solid var(--border)}
+.score-ring-wrap{position:relative;width:84px;height:84px}
+.score-svg-el{width:84px;height:84px;transform:rotate(-90deg);display:block}
+.score-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.score-val{font-size:22px;font-weight:900;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,#3b82f6,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1}
+.score-lbl{font-size:9px;color:var(--text-muted);margin-top:2px}
+.sidebar-nav{padding:10px 8px;display:flex;flex-direction:column;gap:2px;flex:1}
+.nav-i{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;border:none;background:transparent;color:var(--text-second);font-size:12px;font-family:'Noto Sans KR',sans-serif;cursor:pointer;width:100%;text-align:left;transition:all .2s}
+.nav-i:hover{background:rgba(59,130,246,0.08);color:var(--text-primary)}
+.nav-i.active{background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(6,182,212,0.08));color:var(--blue);border:1px solid rgba(59,130,246,0.2);font-weight:600}
+.nav-icon{font-size:15px;flex-shrink:0}.nav-text{flex:1}
+.nav-badge{background:var(--red);color:white;font-size:9px;font-weight:700;min-width:17px;height:17px;padding:0 4px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center}
+.sidebar-footer{padding:10px;border-top:1px solid var(--border)}
+.sys-row{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* MAIN */
+.main-c{flex:1;padding:24px 24px 36px;overflow:auto}
+.page-title{font-size:20px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--text-muted);margin-bottom:22px}
+
+/* CARDS */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:18px;box-shadow:var(--shadow-card);margin-bottom:14px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-header h3{font-size:13px;font-weight:600}
+.card-action{font-size:11px;color:var(--blue);cursor:pointer}
+.card-desc{font-size:11px;color:var(--text-muted);margin-bottom:10px}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-card)}
+.stat-icon{width:40px;height:40px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.si-green{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.2)}
+.si-blue{background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2)}
+.si-yellow{background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.2)}
+.si-cyan{background:rgba(6,182,212,0.12);border:1px solid rgba(6,182,212,0.2)}
+.stat-val{font-size:24px;font-weight:900;font-family:'JetBrains Mono',monospace;line-height:1}
+.stat-lbl{font-size:11px;color:var(--text-muted);margin-top:2px}
+.stat-trend{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);margin-left:auto;align-self:flex-start}
+.trend-up{color:var(--green)}
+.trend-dn{color:var(--red)}
+
+/* GRIDS */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.full-w{grid-column:1/-1}
+
+/* POLICY */
+.policy-item{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--bg-input);border-radius:6px;border:1px solid var(--border);margin-bottom:5px}
+.policy-name{font-size:12px;color:var(--text-second)}
+.ps{font-size:10px;padding:2px 8px;border-radius:999px;font-weight:600}
+.ps-on{background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.25)}
+.ps-off{background:rgba(239,68,68,0.12);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
+
+/* LOG ITEMS */
+.log-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg-input);border-radius:6px;border-left:2px solid var(--border);margin-bottom:4px}
+.li-blocked{border-left-color:var(--red)}.li-allowed{border-left-color:var(--green)}.li-warning{border-left-color:var(--yellow)}
+.li-msg{flex:1;font-size:11px;color:var(--text-primary)}
+.li-time{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-muted)}
+
+/* PC GRID */
+.pc-grid{display:flex;flex-wrap:wrap;gap:8px}
+.pc-chip{display:flex;align-items:center;gap:6px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:7px 12px;font-size:11px;color:var(--text-second)}
+.pc-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green)}
+.pc-dot-off{background:var(--text-muted);box-shadow:none}
+
+/* TOGGLE */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.toggle-row:last-of-type{border-bottom:none}
+.toggle-info{flex:1;margin-right:14px}
+.toggle-title{display:block;font-size:12px;color:var(--text-primary);font-weight:500}
+.toggle-desc{display:block;font-size:10px;color:var(--text-muted);margin-top:1px}
+.toggle-sw{position:relative}
+.toggle-knob{display:block;width:42px;height:23px;border-radius:999px;cursor:pointer;position:relative;transition:all .2s}
+.tk-on{background:linear-gradient(135deg,var(--blue),var(--cyan));border:1px solid var(--blue)}
+.tk-off{background:rgba(255,255,255,0.08);border:1px solid var(--border)}
+.toggle-knob::after{content:'';position:absolute;top:50%;transform:translateY(-50%);width:15px;height:15px;border-radius:50%;transition:all .2s}
+.tk-on::after{right:3px;background:white;box-shadow:0 0 6px rgba(59,130,246,0.6)}
+.tk-off::after{left:3px;background:var(--text-muted)}
+
+/* FORM */
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text-second);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.form-input{width:100%;padding:8px 11px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:12px;font-family:'Noto Sans KR',sans-serif}
+.form-input.focused{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,0.15)}
+.pw-strength-bar{height:3px;background:rgba(255,255,255,0.06);border-radius:999px;margin-top:5px;overflow:hidden}
+.pw-strength-fill{height:100%;border-radius:999px}
+.pw-sl-lbl{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--green);margin-top:2px}
+.slider-wrap{display:flex;align-items:center;gap:10px}
+.fake-slider{flex:1;height:4px;background:linear-gradient(90deg,var(--blue) 60%,rgba(255,255,255,0.08) 60%);border-radius:999px;position:relative}
+.fake-handle{position:absolute;left:58%;top:50%;transform:translate(-50%,-50%);width:14px;height:14px;background:var(--blue);border-radius:50%;box-shadow:0 0 6px rgba(59,130,246,.5)}
+.slider-val{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--cyan)}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{padding:9px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+.data-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,0.03);color:var(--text-second)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:rgba(59,130,246,0.04);color:var(--text-primary)}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:10px;font-weight:600}
+.bg{background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.2)}
+.br{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.2)}
+.bb{background:rgba(59,130,246,0.12);color:var(--blue);border:1px solid rgba(59,130,246,0.2)}
+.by{background:rgba(245,158,11,0.12);color:var(--yellow);border:1px solid rgba(245,158,11,0.2)}
+.bgr{background:rgba(255,255,255,0.06);color:var(--text-muted);border:1px solid var(--border)}
+.bp{background:rgba(139,92,246,0.12);color:var(--purple);border:1px solid rgba(139,92,246,0.2)}
+
+/* TAG */
+.tag-area{display:flex;flex-wrap:wrap;gap:5px;padding:8px;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);min-height:40px;margin-bottom:8px}
+.tag{display:flex;align-items:center;gap:4px;padding:2px 9px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);border-radius:999px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--blue)}
+.tag-x{background:none;border:none;color:inherit;cursor:pointer;font-size:10px;opacity:.6}
+
+/* WHITELIST */
+.wl-item{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--cyan);margin-bottom:4px}
+
+/* FOLDER LIST */
+.folder-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-second);margin-bottom:4px}
+.folder-item span{flex:1}
+
+/* IFACE */
+.iface-card{background:var(--bg-input);border:1px solid var(--border);border-radius:6px;padding:10px 14px;min-width:190px}
+.iface-name{font-size:11px;font-weight:600;color:var(--blue);margin-bottom:5px}
+.iface-row{font-size:10px;color:var(--text-muted);font-family:'JetBrains Mono',monospace;margin-bottom:2px}
+.iface-val{color:var(--text-second)}
+.iface-grid{display:flex;flex-wrap:wrap;gap:10px}
+
+/* APPROVAL */
+.filter-tabs{display:flex;gap:3px;background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:3px;width:fit-content;margin-bottom:12px}
+.ft{padding:5px 14px;border-radius:7px;border:none;background:transparent;color:var(--text-muted);font-size:12px;font-family:'Noto Sans KR',sans-serif;cursor:pointer}
+.ft.active{background:var(--blue);color:white}
+.fc{background:rgba(255,255,255,0.15);color:white;font-size:9px;padding:1px 5px;border-radius:999px;min-width:17px;text-align:center}
+.ap-card{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:14px;display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.ap-card.pending{border-left:3px solid var(--yellow)}
+.ap-card.done-a{border-left:3px solid var(--green);opacity:.75}
+.ap-card.done-r{border-left:3px solid var(--red);opacity:.75}
+.ap-icon{font-size:22px;flex-shrink:0}
+.ap-info{flex:1}
+.ap-file{font-size:13px;font-weight:600;margin-bottom:2px}
+.ap-meta{font-size:11px;color:var(--text-muted)}
+.ap-time{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);margin-top:3px}
+.ap-acts{display:flex;gap:6px}
+.btn-g{padding:5px 12px;background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.25);border-radius:6px;font-size:11px;cursor:pointer}
+.btn-r{padding:5px 12px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);border-radius:6px;font-size:11px;cursor:pointer}
+
+/* LOG ENTRY */
+.log-entry{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;border-left:2px solid transparent;background:var(--bg-input);margin-bottom:3px}
+.le-b{border-left-color:var(--red)}.le-a{border-left-color:var(--green)}.le-w{border-left-color:var(--yellow)}
+.le-icon{font-size:13px;flex-shrink:0}
+.le-msg{flex:1;font-size:11px;color:var(--text-second)}
+.le-time{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);white-space:nowrap}
+
+/* MINI CHART */
+.mini-chart{height:40px;display:flex;align-items:flex-end;gap:3px}
+.bar-col{flex:1;background:linear-gradient(180deg,rgba(59,130,246,0.7),rgba(6,182,212,0.3));border-radius:2px 2px 0 0;transition:height .3s}
+.chart-labels{display:flex;justify-content:space-between;margin-top:4px}
+.chart-lbl{font-size:9px;color:var(--text-muted);font-family:'JetBrains Mono',monospace}
+
+/* SECURITY RING FILL */
+
+/* RESPONSIVE N/A */
+.row2{display:grid;grid-template-columns:160px 1fr;gap:14px}
+
+/* BUTTONS */
+.btn-p{padding:7px 16px;background:linear-gradient(135deg,var(--blue),var(--blue-dark));color:white;border:none;border-radius:7px;font-size:12px;font-weight:600;font-family:'Noto Sans KR',sans-serif;cursor:pointer;white-space:nowrap}
+.btn-o{padding:6px 14px;background:transparent;color:var(--text-second);border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'Noto Sans KR',sans-serif;cursor:pointer}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-d{padding:6px 12px;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);border-radius:7px;font-size:11px;cursor:pointer}
+.btn-y{padding:6px 12px;background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2);border-radius:7px;font-size:11px;cursor:pointer}
+
+/* MINI KPI */
+.kpi-row{display:flex;gap:10px;margin-bottom:12px}
+.kpi-box{flex:1;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.kpi-val{font-size:18px;font-weight:900;font-family:'JetBrains Mono',monospace}
+.kpi-lbl{font-size:10px;color:var(--text-muted);margin-top:2px}
+.kpi-v-g{color:var(--green)}.kpi-v-r{color:var(--red)}.kpi-v-b{color:var(--blue)}.kpi-v-y{color:var(--yellow)}
+
+/* HEADER ACTIONS */
+.header-actions{display:flex;align-items:center;gap:7px}
+.search-inp{padding:6px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;font-family:'Noto Sans KR',sans-serif;width:160px}
+.form-sel{padding:6px 10px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;font-family:'Noto Sans KR',sans-serif}
+
+/* info cards */
+.info-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.info-card{background:var(--bg-input);border:1px solid var(--border);border-radius:7px;padding:10px}
+.ic-label{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:1px;margin-bottom:3px}
+.ic-value{font-size:12px;color:var(--text-primary);font-family:'JetBrains Mono',monospace}
+
+/* log pagination */
+.log-page{display:flex;align-items:center;justify-content:center;gap:10px;padding-top:12px;font-size:11px;color:var(--text-muted)}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<div class="demo-nav">
+  <span class="demo-nav-title">📸 JBMSOFT Security — 포트폴리오 데모</span>
+  <button class="tab-btn active" onclick="show('dash',this)">대시보드</button>
+  <button class="tab-btn" onclick="show('pw',this)">비밀번호&amp;인증</button>
+  <button class="tab-btn" onclick="show('fs',this)">파일 보안</button>
+  <button class="tab-btn" onclick="show('net',this)">네트워크&amp;메일</button>
+  <button class="tab-btn" onclick="show('pc',this)">허용 PC</button>
+  <button class="tab-btn" onclick="show('ap',this)">관리자 승인</button>
+  <button class="tab-btn" onclick="show('log',this)">보안 로그</button>
+</div>
+
+<!-- ════════════ 1. 대시보드 ════════════ -->
+<div class="section active" id="dash">
+  <!-- Titlebar -->
+  <div class="titlebar">
+    <div class="titlebar-left">
+      <span class="titlebar-logo-text"><span class="titlebar-logo-jbm">JBM</span><span class="titlebar-logo-soft">SOFT</span></span>
+      <span style="color:var(--text-muted);font-size:13px;font-weight:600">Security Manager</span>
+      <span class="titlebar-badge">● 보안 활성화</span>
+    </div>
+    <div class="titlebar-right">
+      <div class="lang-switcher"><button class="lang-b">KO</button><button class="lang-b" style="background:transparent;color:var(--text-muted)">EN</button></div>
+      <div class="win-btns"><button class="wb">─</button><button class="wb">□</button><button class="wb" style="background:rgba(239,68,68,0.15);color:var(--red)">✕</button></div>
+    </div>
+  </div>
+  <div class="page-wrapper">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <div class="score-ring-wrap">
+          <svg class="score-svg-el" viewBox="0 0 80 80">
+            <defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#3b82f6"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs>
+            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+            <circle cx="40" cy="40" r="34" fill="none" stroke="url(#sg)" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="10.68"/>
+          </svg>
+          <div class="score-inner"><span class="score-val">95</span><span class="score-lbl">보안점수</span></div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-i active"><span class="nav-icon">⊞</span><span class="nav-text">대시보드</span></button>
+        <button class="nav-i"><span class="nav-icon">🔑</span><span class="nav-text">비밀번호 &amp; 인증</span></button>
+        <button class="nav-i"><span class="nav-icon">📁</span><span class="nav-text">파일 보안</span></button>
+        <button class="nav-i"><span class="nav-icon">🌐</span><span class="nav-text">네트워크 &amp; 메일</span></button>
+        <button class="nav-i"><span class="nav-icon">🖥️</span><span class="nav-text">허용 PC 관리</span></button>
+        <button class="nav-i"><span class="nav-icon">✅</span><span class="nav-text">관리자 승인</span><span class="nav-badge">3</span></button>
+        <button class="nav-i"><span class="nav-icon">📋</span><span class="nav-text">보안 로그</span></button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sys-row"><span>💻</span><span>JBMSOFT-SVR-01</span></div>
+        <div class="sys-row"><span>👤</span><span>admin (관리자)</span></div>
+        <div class="sys-row"><span>🕐</span><span>2025-04-22 19:14</span></div>
+      </div>
+    </div>
+    <!-- Main -->
+    <div class="main-c">
+      <div class="page-title">대시보드</div>
+      <div class="page-sub">JBMSOFT 사내 보안 현황을 실시간으로 모니터링합니다</div>
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon si-green">🛡️</div>
+          <div style="flex:1"><div class="stat-val" style="color:var(--red)">47</div><div class="stat-lbl">오늘 차단 이벤트</div></div>
+          <div class="stat-trend trend-dn">▲12 오늘</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon si-blue">🖥️</div>
+          <div style="flex:1"><div class="stat-val" style="color:var(--blue)">28</div><div class="stat-lbl">허용된 PC</div></div>
+          <div class="stat-trend">─</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon si-yellow">⏳</div>
+          <div style="flex:1"><div class="stat-val" style="color:var(--yellow)">3</div><div class="stat-lbl">승인 대기</div></div>
+          <div class="stat-trend trend-dn">⚠️ 처리 필요</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon si-cyan">📧</div>
+          <div style="flex:1"><div class="stat-val" style="color:var(--cyan)">12</div><div class="stat-lbl">메일 화이트리스트</div></div>
+          <div class="stat-trend">─</div>
+        </div>
+      </div>
+      <!-- 7-day chart + policies -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><h3>📊 주간 차단 현황</h3><span class="card-action">7일 기준</span></div>
+          <div class="mini-chart">
+            <div class="bar-col" style="height:35%"></div>
+            <div class="bar-col" style="height:60%"></div>
+            <div class="bar-col" style="height:45%"></div>
+            <div class="bar-col" style="height:80%"></div>
+            <div class="bar-col" style="height:55%"></div>
+            <div class="bar-col" style="height:70%"></div>
+            <div class="bar-col" style="height:90%;background:linear-gradient(180deg,rgba(239,68,68,0.8),rgba(239,68,68,0.2))"></div>
+          </div>
+          <div class="chart-labels">
+            <span class="chart-lbl">04/16</span><span class="chart-lbl">04/17</span><span class="chart-lbl">04/18</span>
+            <span class="chart-lbl">04/19</span><span class="chart-lbl">04/20</span><span class="chart-lbl">04/21</span>
+            <span class="chart-lbl" style="color:var(--red)">오늘</span>
+          </div>
+          <div style="margin-top:12px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--text-muted)">클립보드 차단</span><span style="font-family:monospace;color:var(--red)">23건</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--text-muted)">메일 첨부 차단</span><span style="font-family:monospace;color:var(--yellow)">14건</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:var(--text-muted)">외부 업로드 차단</span><span style="font-family:monospace;color:var(--blue)">10건</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>🛡️ 보안 정책 현황</h3><span class="card-action">상세 설정 →</span></div>
+          <div class="policy-item"><span class="policy-name">클립보드 파일 복사 차단</span><span class="ps ps-on">ON</span></div>
+          <div class="policy-item"><span class="policy-name">파일 보안 감시 활성화</span><span class="ps ps-on">ON</span></div>
+          <div class="policy-item"><span class="policy-name">메일 첨부파일 전송 차단</span><span class="ps ps-on">ON</span></div>
+          <div class="policy-item"><span class="policy-name">화면 캡처 감지</span><span class="ps ps-on">ON</span></div>
+          <div class="policy-item"><span class="policy-name">USB 저장장치 차단</span><span class="ps ps-off">OFF</span></div>
+          <div class="policy-item"><span class="policy-name">외부 클라우드 업로드 차단</span><span class="ps ps-on">ON</span></div>
+        </div>
+      </div>
+      <!-- Recent logs + PC status -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><h3>⚡ 최근 보안 이벤트</h3><span class="card-action">전체 보기 →</span></div>
+          <div class="log-item li-blocked"><span>🚫</span><div style="flex:1"><div class="li-msg">클립보드 복사 차단: Q1_재무보고서.xlsx</div><div class="li-time">19:12:34</div></div></div>
+          <div class="log-item li-blocked"><span>🚫</span><div style="flex:1"><div class="li-msg">외부 메일 차단: unknown@gmail.com 첨부</div><div class="li-time">19:08:21</div></div></div>
+          <div class="log-item li-warning"><span>⚠️</span><div style="flex:1"><div class="li-msg">화면 녹화 프로그램 감지: OBS Studio</div><div class="li-time">18:55:03</div></div></div>
+          <div class="log-item li-allowed"><span>✅</span><div style="flex:1"><div class="li-msg">파일 이동 허용: JBMSOFT-DEV01 → JBMSOFT-ADM</div><div class="li-time">18:44:18</div></div></div>
+          <div class="log-item li-blocked"><span>🚫</span><div style="flex:1"><div class="li-msg">USB 외부장치 연결 감지 및 차단</div><div class="li-time">18:31:55</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>🖥️ 허용 PC 현황</h3><span class="card-action">관리 →</span></div>
+          <div class="pc-grid">
+            <div class="pc-chip"><div class="pc-dot"></div>JBMSOFT-DEV01<span style="color:var(--text-muted);font-size:10px;margin-left:4px">192.168.1.10</span></div>
+            <div class="pc-chip"><div class="pc-dot"></div>JBMSOFT-ADM<span style="color:var(--text-muted);font-size:10px;margin-left:4px">192.168.1.2</span></div>
+            <div class="pc-chip"><div class="pc-dot"></div>JBMSOFT-MKT01<span style="color:var(--text-muted);font-size:10px;margin-left:4px">192.168.1.25</span></div>
+            <div class="pc-chip"><div class="pc-dot"></div>JBMSOFT-FIN01<span style="color:var(--text-muted);font-size:10px;margin-left:4px">192.168.1.30</span></div>
+            <div class="pc-chip"><div class="pc-dot pc-dot-off"></div>JBMSOFT-HR02<span style="color:var(--text-muted);font-size:10px;margin-left:4px">오프라인</span></div>
+            <div class="pc-chip"><div class="pc-dot"></div>JBMSOFT-CEO<span style="color:var(--text-muted);font-size:10px;margin-left:4px">192.168.1.5</span></div>
+          </div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">부서별 PC 분포</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span class="badge bb">개발팀 8</span>
+              <span class="badge bg">관리 5</span>
+              <span class="badge by">영업 6</span>
+              <span class="badge bp">재무 4</span>
+              <span class="badge bgr">기타 5</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 2. 비밀번호 & 인증 ════════════ -->
+<div class="section" id="pw">
+  <div class="titlebar"><div class="titlebar-left"><span class="titlebar-logo-text"><span class="titlebar-logo-jbm">JBM</span><span class="titlebar-logo-soft">SOFT</span></span><span style="color:var(--text-muted);font-size:13px;font-weight:600">Security Manager</span><span class="titlebar-badge">● 보안 활성화</span></div><div class="titlebar-right"><div class="lang-switcher"><button class="lang-b">KO</button><button class="lang-b" style="background:transparent;color:var(--text-muted)">EN</button></div><div class="win-btns"><button class="wb">─</button><button class="wb">□</button><button class="wb" style="background:rgba(239,68,68,0.15);color:var(--red)">✕</button></div></div></div>
+  <div class="page-wrapper">
+    <div class="sidebar">
+      <div class="sidebar-header"><div class="score-ring-wrap"><svg class="score-svg-el" viewBox="0 0 80 80"><defs><linearGradient id="sg2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#3b82f6"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/><circle cx="40" cy="40" r="34" fill="none" stroke="url(#sg2)" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="10.68"/></svg><div class="score-inner"><span class="score-val">95</span><span class="score-lbl">보안점수</span></div></div></div>
+      <nav class="sidebar-nav">
+        <button class="nav-i"><span class="nav-icon">⊞</span><span class="nav-text">대시보드</span></button>
+        <button class="nav-i active"><span class="nav-icon">🔑</span><span class="nav-text">비밀번호 &amp; 인증</span></button>
+        <button class="nav-i"><span class="nav-icon">📁</span><span class="nav-text">파일 보안</span></button>
+        <button class="nav-i"><span class="nav-icon">🌐</span><span class="nav-text">네트워크 &amp; 메일</span></button>
+        <button class="nav-i"><span class="nav-icon">🖥️</span><span class="nav-text">허용 PC 관리</span></button>
+        <button class="nav-i"><span class="nav-icon">✅</span><span class="nav-text">관리자 승인</span><span class="nav-badge">3</span></button>
+        <button class="nav-i"><span class="nav-icon">📋</span><span class="nav-text">보안 로그</span></button>
+      </nav>
+      <div class="sidebar-footer"><div class="sys-row"><span>💻</span><span>JBMSOFT-SVR-01</span></div><div class="sys-row"><span>👤</span><span>admin (관리자)</span></div></div>
+    </div>
+    <div class="main-c">
+      <div class="page-title">비밀번호 &amp; 인증</div>
+      <div class="page-sub">관리자 비밀번호 및 인증 정책을 설정합니다</div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-header"><h3>🔐 관리자 비밀번호 변경</h3></div>
+          <div class="form-group"><label>현재 비밀번호</label><div style="position:relative"><input type="password" value="••••••••••••" class="form-input" readonly><button style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;opacity:.5;cursor:pointer">👁️</button></div></div>
+          <div class="form-group"><label>새 비밀번호</label><div style="position:relative"><input type="password" value="••••••••••••••" class="form-input focused" readonly></div>
+            <div class="pw-strength-bar"><div class="pw-strength-fill" style="width:85%;background:linear-gradient(90deg,var(--blue),var(--cyan))"></div></div>
+            <div class="pw-sl-lbl">🟢 강함 — 대소문자+숫자+특수문자 포함</div>
+          </div>
+          <div class="form-group"><label>비밀번호 확인</label><input type="password" value="••••••••••••••" class="form-input" readonly></div>
+          <button class="btn-p" style="width:100%">비밀번호 변경 저장</button>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>⏱️ 잠금 정책</h3></div>
+          <div class="form-group"><label>자동 잠금 시간</label>
+            <div class="slider-wrap">
+              <div class="fake-slider"><div class="fake-handle"></div></div>
+              <span class="slider-val">30분</span>
+            </div>
+          </div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">화면 잠금 시 보안 강화</span><span class="toggle-desc">화면 보호기 실행 시 자동 보안 레벨 상향</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">로그인 실패 횟수 제한</span><span class="toggle-desc">5회 이상 실패 시 계정 잠금 및 관리자 알림</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">2단계 인증 (OTP)</span><span class="toggle-desc">관리자 로그인 시 TOTP 인증 추가 요구</span></div><div class="toggle-sw"><div class="toggle-knob tk-off"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">세션 타임아웃</span><span class="toggle-desc">비활동 30분 후 자동 로그아웃</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+        </div>
+        <div class="card full-w">
+          <div class="card-header"><h3>👥 사용자 계정 관리</h3><button class="btn-p btn-sm">+ 사용자 추가</button></div>
+          <table class="data-table">
+            <thead><tr><th>이름</th><th>부서</th><th>역할</th><th>이메일</th><th>마지막 로그인</th><th>로그인 실패</th><th>상태</th><th>작업</th></tr></thead>
+            <tbody>
+              <tr><td>👤 김관리</td><td>정보보안팀</td><td><span class="badge bp">관리자</span></td><td style="font-family:monospace;font-size:11px">kim@jbmsoft.com</td><td style="font-family:monospace;font-size:11px">2025-04-22 19:10</td><td style="color:var(--green);font-family:monospace">0회</td><td><span class="badge bg">활성</span></td><td><button class="btn-o btn-sm">편집</button></td></tr>
+              <tr><td>👤 이철수</td><td>개발팀</td><td><span class="badge bgr">사용자</span></td><td style="font-family:monospace;font-size:11px">lee@jbmsoft.com</td><td style="font-family:monospace;font-size:11px">2025-04-22 18:45</td><td style="color:var(--green);font-family:monospace">0회</td><td><span class="badge bg">활성</span></td><td><button class="btn-o btn-sm">편집</button></td></tr>
+              <tr><td>👤 박영희</td><td>영업팀</td><td><span class="badge bgr">사용자</span></td><td style="font-family:monospace;font-size:11px">park@jbmsoft.com</td><td style="font-family:monospace;font-size:11px">2025-04-22 17:30</td><td style="color:var(--yellow);font-family:monospace">2회</td><td><span class="badge bg">활성</span></td><td><button class="btn-o btn-sm">편집</button></td></tr>
+              <tr><td>👤 최민준</td><td>재무팀</td><td><span class="badge bgr">사용자</span></td><td style="font-family:monospace;font-size:11px">choi@jbmsoft.com</td><td style="font-family:monospace;font-size:11px">2025-04-21 11:00</td><td style="color:var(--green);font-family:monospace">0회</td><td><span class="badge bgr">비활성</span></td><td><button class="btn-o btn-sm">편집</button></td></tr>
+              <tr><td>👤 정수진</td><td>인사팀</td><td><span class="badge bgr">사용자</span></td><td style="font-family:monospace;font-size:11px">jung@jbmsoft.com</td><td style="font-family:monospace;font-size:11px">2025-04-22 09:20</td><td style="color:var(--red);font-family:monospace">5회 ⚠️</td><td><span class="badge br">잠금</span></td><td><button class="btn-o btn-sm">잠금해제</button></td></tr>
+              <tr><td>👤 한대표</td><td>경영진</td><td><span class="badge bp">관리자</span></td><td style="font-family:monospace;font-size:11px">han@jbmsoft.com</td><td style="font-family:monospace;font-size:11px">2025-04-22 14:00</td><td style="color:var(--green);font-family:monospace">0회</td><td><span class="badge bg">활성</span></td><td><button class="btn-o btn-sm">편집</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 3. 파일 보안 ════════════ -->
+<div class="section" id="fs">
+  <div class="titlebar"><div class="titlebar-left"><span class="titlebar-logo-text"><span class="titlebar-logo-jbm">JBM</span><span class="titlebar-logo-soft">SOFT</span></span><span style="color:var(--text-muted);font-size:13px;font-weight:600">Security Manager</span><span class="titlebar-badge">● 보안 활성화</span></div><div class="titlebar-right"><div class="lang-switcher"><button class="lang-b">KO</button><button class="lang-b" style="background:transparent;color:var(--text-muted)">EN</button></div><div class="win-btns"><button class="wb">─</button><button class="wb">□</button><button class="wb" style="background:rgba(239,68,68,0.15);color:var(--red)">✕</button></div></div></div>
+  <div class="page-wrapper">
+    <div class="sidebar">
+      <div class="sidebar-header"><div class="score-ring-wrap"><svg class="score-svg-el" viewBox="0 0 80 80"><defs><linearGradient id="sg3" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#3b82f6"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/><circle cx="40" cy="40" r="34" fill="none" stroke="url(#sg3)" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="10.68"/></svg><div class="score-inner"><span class="score-val">95</span><span class="score-lbl">보안점수</span></div></div></div>
+      <nav class="sidebar-nav">
+        <button class="nav-i"><span class="nav-icon">⊞</span><span class="nav-text">대시보드</span></button>
+        <button class="nav-i"><span class="nav-icon">🔑</span><span class="nav-text">비밀번호 &amp; 인증</span></button>
+        <button class="nav-i active"><span class="nav-icon">📁</span><span class="nav-text">파일 보안</span></button>
+        <button class="nav-i"><span class="nav-icon">🌐</span><span class="nav-text">네트워크 &amp; 메일</span></button>
+        <button class="nav-i"><span class="nav-icon">🖥️</span><span class="nav-text">허용 PC 관리</span></button>
+        <button class="nav-i"><span class="nav-icon">✅</span><span class="nav-text">관리자 승인</span><span class="nav-badge">3</span></button>
+        <button class="nav-i"><span class="nav-icon">📋</span><span class="nav-text">보안 로그</span></button>
+      </nav>
+      <div class="sidebar-footer"><div class="sys-row"><span>💻</span><span>JBMSOFT-SVR-01</span></div><div class="sys-row"><span>👤</span><span>admin (관리자)</span></div></div>
+    </div>
+    <div class="main-c">
+      <div class="page-title">파일 보안</div>
+      <div class="page-sub">파일 복사·이동 차단 및 실시간 감시 정책을 설정합니다</div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-header"><h3>🛡️ 파일 보호 정책</h3></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">클립보드 파일 복사 차단</span><span class="toggle-desc">파일 경로·내용을 클립보드로 복사하는 동작 차단</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">파일 보안 감시 활성화</span><span class="toggle-desc">지정 폴더의 파일 변경·이동을 실시간 감시</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">USB 저장장치 차단</span><span class="toggle-desc">이동식 USB 드라이브로의 파일 전송 차단</span></div><div class="toggle-sw"><div class="toggle-knob tk-off"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">화면 캡처 감지</span><span class="toggle-desc">스크린샷·화면 녹화 프로그램 감지 시 경고</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">파일 암호화 요구</span><span class="toggle-desc">민감 폴더 파일 전송 시 AES-256 암호화 필수</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">대용량 파일 차단 (50MB 초과)</span><span class="toggle-desc">50MB 초과 파일의 외부 전송 차단</span></div><div class="toggle-sw"><div class="toggle-knob tk-off"></div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>📄 차단 파일 형식 (확장자)</h3></div>
+          <div class="card-desc">외부로 전송을 차단할 파일 확장자를 설정합니다</div>
+          <div class="tag-area">
+            <span class="tag">.exe <button class="tag-x">✕</button></span>
+            <span class="tag">.bat <button class="tag-x">✕</button></span>
+            <span class="tag">.cmd <button class="tag-x">✕</button></span>
+            <span class="tag">.ps1 <button class="tag-x">✕</button></span>
+            <span class="tag">.sh <button class="tag-x">✕</button></span>
+            <span class="tag">.pdf <button class="tag-x">✕</button></span>
+            <span class="tag">.docx <button class="tag-x">✕</button></span>
+            <span class="tag">.xlsx <button class="tag-x">✕</button></span>
+            <span class="tag">.pptx <button class="tag-x">✕</button></span>
+            <span class="tag">.zip <button class="tag-x">✕</button></span>
+            <span class="tag">.7z <button class="tag-x">✕</button></span>
+            <span class="tag">.rar <button class="tag-x">✕</button></span>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px"><input type="text" placeholder="확장자 추가 예: psd" class="form-input" style="flex:1"><button class="btn-p btn-sm">추가</button></div>
+        </div>
+        <div class="card full-w">
+          <div class="card-header"><h3>📂 감시 폴더 설정</h3><button class="btn-p btn-sm">+ 폴더 추가</button></div>
+          <div class="folder-item"><span>📁</span><span>C:\Users\Public\Documents\JBMSOFT</span><span class="badge bg" style="margin-left:auto">감시 중</span><button style="background:none;border:none;color:var(--red);cursor:pointer;opacity:.6;margin-left:8px">✕</button></div>
+          <div class="folder-item"><span>📁</span><span>D:\JBMSOFT_Projects\Confidential</span><span class="badge bg" style="margin-left:auto">감시 중</span><button style="background:none;border:none;color:var(--red);cursor:pointer;opacity:.6;margin-left:8px">✕</button></div>
+          <div class="folder-item"><span>📁</span><span>D:\Finance\Reports_2025</span><span class="badge bg" style="margin-left:auto">감시 중</span><button style="background:none;border:none;color:var(--red);cursor:pointer;opacity:.6;margin-left:8px">✕</button></div>
+          <div class="folder-item"><span>📁</span><span>C:\JBMSOFT\HR\PersonalData</span><span class="badge by" style="margin-left:auto">읽기 전용</span><button style="background:none;border:none;color:var(--red);cursor:pointer;opacity:.6;margin-left:8px">✕</button></div>
+          <div class="folder-item"><span>📁</span><span>D:\Development\Source\CoreAPI</span><span class="badge bg" style="margin-left:auto">감시 중</span><button style="background:none;border:none;color:var(--red);cursor:pointer;opacity:.6;margin-left:8px">✕</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 4. 네트워크 & 메일 ════════════ -->
+<div class="section" id="net">
+  <div class="titlebar"><div class="titlebar-left"><span class="titlebar-logo-text"><span class="titlebar-logo-jbm">JBM</span><span class="titlebar-logo-soft">SOFT</span></span><span style="color:var(--text-muted);font-size:13px;font-weight:600">Security Manager</span><span class="titlebar-badge">● 보안 활성화</span></div><div class="titlebar-right"><div class="lang-switcher"><button class="lang-b">KO</button><button class="lang-b" style="background:transparent;color:var(--text-muted)">EN</button></div><div class="win-btns"><button class="wb">─</button><button class="wb">□</button><button class="wb" style="background:rgba(239,68,68,0.15);color:var(--red)">✕</button></div></div></div>
+  <div class="page-wrapper">
+    <div class="sidebar">
+      <div class="sidebar-header"><div class="score-ring-wrap"><svg class="score-svg-el" viewBox="0 0 80 80"><defs><linearGradient id="sg4" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#3b82f6"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/><circle cx="40" cy="40" r="34" fill="none" stroke="url(#sg4)" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="10.68"/></svg><div class="score-inner"><span class="score-val">95</span><span class="score-lbl">보안점수</span></div></div></div>
+      <nav class="sidebar-nav">
+        <button class="nav-i"><span class="nav-icon">⊞</span><span class="nav-text">대시보드</span></button>
+        <button class="nav-i"><span class="nav-icon">🔑</span><span class="nav-text">비밀번호 &amp; 인증</span></button>
+        <button class="nav-i"><span class="nav-icon">📁</span><span class="nav-text">파일 보안</span></button>
+        <button class="nav-i active"><span class="nav-icon">🌐</span><span class="nav-text">네트워크 &amp; 메일</span></button>
+        <button class="nav-i"><span class="nav-icon">🖥️</span><span class="nav-text">허용 PC 관리</span></button>
+        <button class="nav-i"><span class="nav-icon">✅</span><span class="nav-text">관리자 승인</span><span class="nav-badge">3</span></button>
+        <button class="nav-i"><span class="nav-icon">📋</span><span class="nav-text">보안 로그</span></button>
+      </nav>
+      <div class="sidebar-footer"><div class="sys-row"><span>💻</span><span>JBMSOFT-SVR-01</span></div><div class="sys-row"><span>👤</span><span>admin (관리자)</span></div></div>
+    </div>
+    <div class="main-c">
+      <div class="page-title">네트워크 &amp; 메일</div>
+      <div class="page-sub">메일 전송 차단 및 네트워크 보안 정책을 설정합니다</div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-header"><h3>📧 메일 전송 보안</h3></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">메일 첨부파일 전송 차단</span><span class="toggle-desc">화이트리스트 외 수신자에게 첨부파일 전송 차단</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">외부 클라우드 업로드 차단</span><span class="toggle-desc">Google Drive, Dropbox, OneDrive 등 업로드 차단</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">대용량 첨부파일 차단 (10MB+)</span><span class="toggle-desc">10MB 초과 첨부파일은 DLP 검사 후 전송</span></div><div class="toggle-sw"><div class="toggle-knob tk-on"></div></div></div>
+          <div class="toggle-row"><div class="toggle-info"><span class="toggle-title">암호화 키워드 감지</span><span class="toggle-desc">'기밀','비공개' 등 키워드 포함 메일 자동 차단</span></div><div class="toggle-sw"><div class="toggle-knob tk-off"></div></div></div>
+          <div class="form-group" style="margin-top:14px"><label>감시 SMTP 포트</label><input type="text" value="25, 465, 587, 2525" class="form-input"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>✉️ 메일 화이트리스트</h3><button class="btn-p btn-sm">+ 추가</button></div>
+          <div class="card-desc">파일 첨부 전송이 허용된 이메일 주소/도메인</div>
+          <div class="wl-item">✉️ @jbmsoft.com <span class="badge bg" style="margin-left:auto">사내 전체</span></div>
+          <div class="wl-item">✉️ @partner-corp.com <span class="badge bb" style="margin-left:auto">파트너</span></div>
+          <div class="wl-item">✉️ audit@kisa.or.kr <span class="badge by" style="margin-left:auto">감사기관</span></div>
+          <div class="wl-item">✉️ legal@lawfirm.co.kr <span class="badge bgr" style="margin-left:auto">법무</span></div>
+          <div class="wl-item">✉️ finance@bank-trust.com <span class="badge bgr" style="margin-left:auto">금융</span></div>
+          <div style="display:flex;gap:6px;margin-top:8px"><input type="text" placeholder="@domain.com 또는 user@email.com" class="form-input" style="flex:1"><button class="btn-p btn-sm">추가</button></div>
+        </div>
+        <div class="card full-w">
+          <div class="card-header"><h3>🌐 현재 네트워크 인터페이스</h3></div>
+          <div class="iface-grid">
+            <div class="iface-card"><div class="iface-name">🟢 이더넷 (Ethernet 1)</div><div class="iface-row">IP: <span class="iface-val">192.168.1.100</span></div><div class="iface-row">MAC: <span class="iface-val">A4:C3:F0:22:11:AA</span></div><div class="iface-row">게이트웨이: <span class="iface-val">192.168.1.1</span></div></div>
+            <div class="iface-card"><div class="iface-name">🟢 이더넷 (Ethernet 2)</div><div class="iface-row">IP: <span class="iface-val">10.0.0.50</span></div><div class="iface-row">MAC: <span class="iface-val">A4:C3:F0:22:11:BB</span></div><div class="iface-row">용도: <span class="iface-val">내부 서버망</span></div></div>
+            <div class="iface-card"><div class="iface-name">🔴 Wi-Fi (차단)</div><div class="iface-row">SSID: <span class="iface-val" style="color:var(--red)">JBMSOFT_GUEST</span></div><div class="iface-row">상태: <span class="iface-val" style="color:var(--red)">보안정책 차단</span></div><div class="iface-row">이유: <span class="iface-val" style="color:var(--yellow)">미인증 네트워크</span></div></div>
+            <div class="iface-card"><div class="iface-name">🔵 VPN (GlobalProtect)</div><div class="iface-row">IP: <span class="iface-val">172.16.0.22</span></div><div class="iface-row">서버: <span class="iface-val">vpn.jbmsoft.com</span></div><div class="iface-row">암호화: <span class="iface-val" style="color:var(--green)">AES-256</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 5. 허용 PC 관리 ════════════ -->
+<div class="section" id="pc">
+  <div class="titlebar"><div class="titlebar-left"><span class="titlebar-logo-text"><span class="titlebar-logo-jbm">JBM</span><span class="titlebar-logo-soft">SOFT</span></span><span style="color:var(--text-muted);font-size:13px;font-weight:600">Security Manager</span><span class="titlebar-badge">● 보안 활성화</span></div><div class="titlebar-right"><div class="lang-switcher"><button class="lang-b">KO</button><button class="lang-b" style="background:transparent;color:var(--text-muted)">EN</button></div><div class="win-btns"><button class="wb">─</button><button class="wb">□</button><button class="wb" style="background:rgba(239,68,68,0.15);color:var(--red)">✕</button></div></div></div>
+  <div class="page-wrapper">
+    <div class="sidebar">
+      <div class="sidebar-header"><div class="score-ring-wrap"><svg class="score-svg-el" viewBox="0 0 80 80"><defs><linearGradient id="sg5" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#3b82f6"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/><circle cx="40" cy="40" r="34" fill="none" stroke="url(#sg5)" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="10.68"/></svg><div class="score-inner"><span class="score-val">95</span><span class="score-lbl">보안점수</span></div></div></div>
+      <nav class="sidebar-nav">
+        <button class="nav-i"><span class="nav-icon">⊞</span><span class="nav-text">대시보드</span></button>
+        <button class="nav-i"><span class="nav-icon">🔑</span><span class="nav-text">비밀번호 &amp; 인증</span></button>
+        <button class="nav-i"><span class="nav-icon">📁</span><span class="nav-text">파일 보안</span></button>
+        <button class="nav-i"><span class="nav-icon">🌐</span><span class="nav-text">네트워크 &amp; 메일</span></button>
+        <button class="nav-i active"><span class="nav-icon">🖥️</span><span class="nav-text">허용 PC 관리</span></button>
+        <button class="nav-i"><span class="nav-icon">✅</span><span class="nav-text">관리자 승인</span><span class="nav-badge">3</span></button>
+        <button class="nav-i"><span class="nav-icon">📋</span><span class="nav-text">보안 로그</span></button>
+      </nav>
+      <div class="sidebar-footer"><div class="sys-row"><span>💻</span><span>JBMSOFT-SVR-01</span></div><div class="sys-row"><span>👤</span><span>admin (관리자)</span></div></div>
+    </div>
+    <div class="main-c">
+      <div class="page-title">허용 PC 관리</div>
+      <div class="page-sub">보안 파일 이동이 허용된 PC 목록을 등록하고 관리합니다</div>
+      <div class="kpi-row">
+        <div class="kpi-box"><div class="kpi-val kpi-v-b">28</div><div class="kpi-lbl">총 등록 PC</div></div>
+        <div class="kpi-box"><div class="kpi-val kpi-v-g">24</div><div class="kpi-lbl">온라인</div></div>
+        <div class="kpi-box"><div class="kpi-val kpi-v-y">3</div><div class="kpi-lbl">오프라인</div></div>
+        <div class="kpi-box"><div class="kpi-val kpi-v-r">1</div><div class="kpi-lbl">이상 감지</div></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>🖥️ 허용 PC 목록</h3><div class="header-actions"><input type="text" placeholder="PC 검색..." class="search-inp"><button class="btn-p btn-sm">+ PC 등록</button></div></div>
+        <table class="data-table">
+          <thead><tr><th>PC 이름</th><th>IP 주소</th><th>MAC 주소</th><th>부서</th><th>사용자</th><th>등록일</th><th>상태</th><th>작업</th></tr></thead>
+          <tbody>
+            <tr><td>🖥 JBMSOFT-DEV01</td><td style="font-family:monospace;font-size:11px">192.168.1.10</td><td style="font-family:monospace;font-size:11px">A4:C3:F0:11:22:AA</td><td>개발팀</td><td>이철수</td><td style="font-family:monospace;font-size:11px">2025-01-05</td><td><span class="badge bg">온라인</span></td><td><button class="btn-d btn-sm">삭제</button></td></tr>
+            <tr><td>🖥 JBMSOFT-DEV02</td><td style="font-family:monospace;font-size:11px">192.168.1.11</td><td style="font-family:monospace;font-size:11px">A4:C3:F0:11:22:BB</td><td>개발팀</td><td>김개발</td><td style="font-family:monospace;font-size:11px">2025-01-05</td><td><span class="badge bg">온라인</span></td><td><button class="btn-d btn-sm">삭제</button></td></tr>
+            <tr><td>🖥 JBMSOFT-ADM</td><td style="font-family:monospace;font-size:11px">192.168.1.2</td><td style="font-family:monospace;font-size:11px">A4:C3:F0:00:00:01</td><td>정보보안</td><td>김관리</td><td style="font-family:monospace;font-size:11px">2025-01-01</td><td><span class="badge bg">온라인</span></td><td><button class="btn-d btn-sm">삭제</button></td></tr>
+            <tr><td>🖥 JBMSOFT-FIN01</td><td style="font-family:monospace;font-size:11px">192.168.1.30</td><td style="font-family:monospace;font-size:11px">B8:AC:6F:33:44:CC</td><td>재무팀</td><td>최민준</td><td style="font-family:monospace;font-size:11px">2025-02-10</td><td><span class="badge bg">온라인</span></td><td><button class="btn-d btn-sm">삭제</button></td></tr>
+            <tr><td>🖥 JBMSOFT-MKT01</td><td style="font-family:monospace;font-size:11px">192.168.1.25</td><td style="font-family:monospace;font-size:11px">D4:85:64:55:66:DD</td><td>마케팅</td><td>박영희</td><td style="font-family:monospace;font-size:11px">2025-02-14</td><td><span class="badge by">오프라인</span></td><td><button class="btn-d btn-sm">삭제</button></td></tr>
+            <tr><td>🖥 JBMSOFT-CEO</td><td style="font-family:monospace;font-size:11px">192.168.1.5</td><td style="font-family:monospace;font-size:11px">E8:D0:FC:66:77:EE</td><td>경영진</td><td>한대표</td><td style="font-family:monospace;font-size:11px">2025-01-01</td><td><span class="badge bg">온라인</span></td><td><button class="btn-d btn-sm">삭제</button></td></tr>
+            <tr><td>🖥 JBMSOFT-HR01</td><td style="font-family:monospace;font-size:11px">192.168.1.40</td><td style="font-family:monospace;font-size:11px">FC:3F:DB:77:88:FF</td><td>인사팀</td><td>정수진</td><td style="font-family:monospace;font-size:11px">2025-03-01</td><td><span class="badge br">⚠️ 이상감지</span></td><td><button class="btn-d btn-sm">삭제</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>📡 현재 PC 정보 (이 PC)</h3><button class="btn-p btn-sm">이 PC 등록</button></div>
+        <div class="info-cards-grid">
+          <div class="info-card"><div class="ic-label">PC 이름</div><div class="ic-value">JBMSOFT-SVR-01</div></div>
+          <div class="info-card"><div class="ic-label">사용자</div><div class="ic-value">admin</div></div>
+          <div class="info-card"><div class="ic-label">IP 주소</div><div class="ic-value">192.168.1.100</div></div>
+          <div class="info-card"><div class="ic-label">MAC 주소</div><div class="ic-value">A4:C3:F0:22:11:AA</div></div>
+          <div class="info-card"><div class="ic-label">OS</div><div class="ic-value">Windows 11 Pro</div></div>
+          <div class="info-card"><div class="ic-label">CPU</div><div class="ic-value">12 cores</div></div>
+          <div class="info-card"><div class="ic-label">메모리</div><div class="ic-value">32 GB</div></div>
+          <div class="info-card"><div class="ic-label">등록 상태</div><div class="ic-value" style="color:var(--green)">✅ 등록됨</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 6. 관리자 승인 ════════════ -->
+<div class="section" id="ap">
+  <div class="titlebar"><div class="titlebar-left"><span class="titlebar-logo-text"><span class="titlebar-logo-jbm">JBM</span><span class="titlebar-logo-soft">SOFT</span></span><span style="color:var(--text-muted);font-size:13px;font-weight:600">Security Manager</span><span class="titlebar-badge">● 보안 활성화</span></div><div class="titlebar-right"><div class="lang-switcher"><button class="lang-b">KO</button><button class="lang-b" style="background:transparent;color:var(--text-muted)">EN</button></div><div class="win-btns"><button class="wb">─</button><button class="wb">□</button><button class="wb" style="background:rgba(239,68,68,0.15);color:var(--red)">✕</button></div></div></div>
+  <div class="page-wrapper">
+    <div class="sidebar">
+      <div class="sidebar-header"><div class="score-ring-wrap"><svg class="score-svg-el" viewBox="0 0 80 80"><defs><linearGradient id="sg6" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#3b82f6"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/><circle cx="40" cy="40" r="34" fill="none" stroke="url(#sg6)" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="10.68"/></svg><div class="score-inner"><span class="score-val">95</span><span class="score-lbl">보안점수</span></div></div></div>
+      <nav class="sidebar-nav">
+        <button class="nav-i"><span class="nav-icon">⊞</span><span class="nav-text">대시보드</span></button>
+        <button class="nav-i"><span class="nav-icon">🔑</span><span class="nav-text">비밀번호 &amp; 인증</span></button>
+        <button class="nav-i"><span class="nav-icon">📁</span><span class="nav-text">파일 보안</span></button>
+        <button class="nav-i"><span class="nav-icon">🌐</span><span class="nav-text">네트워크 &amp; 메일</span></button>
+        <button class="nav-i"><span class="nav-icon">🖥️</span><span class="nav-text">허용 PC 관리</span></button>
+        <button class="nav-i active"><span class="nav-icon">✅</span><span class="nav-text">관리자 승인</span><span class="nav-badge">3</span></button>
+        <button class="nav-i"><span class="nav-icon">📋</span><span class="nav-text">보안 로그</span></button>
+      </nav>
+      <div class="sidebar-footer"><div class="sys-row"><span>💻</span><span>JBMSOFT-SVR-01</span></div><div class="sys-row"><span>👤</span><span>admin (관리자)</span></div></div>
+    </div>
+    <div class="main-c">
+      <div class="page-title">관리자 승인</div>
+      <div class="page-sub">파일 전송 예외 요청을 검토하고 승인 또는 거부합니다</div>
+      <div class="filter-tabs">
+        <button class="ft active">전체 <span class="fc">6</span></button>
+        <button class="ft">대기 중 <span class="fc" style="background:rgba(245,158,11,.3)">3</span></button>
+        <button class="ft">승인됨</button>
+        <button class="ft">거부됨</button>
+      </div>
+      <!-- Pending -->
+      <div class="ap-card pending">
+        <span class="ap-icon">📤</span>
+        <div class="ap-info">
+          <div class="ap-file">📄 2025_Q1_영업전략_기밀.pptx <span style="font-size:10px;color:var(--text-muted)">(8.2 MB)</span></div>
+          <div class="ap-meta">수신자: partner-ceo@external-biz.com &nbsp;|&nbsp; 요청자: 박영희 (영업팀) &nbsp;|&nbsp; 사유: 파트너사 미팅 자료 공유</div>
+          <div class="ap-time">2025-04-22 19:05:33</div>
+        </div>
+        <span class="badge by">대기</span>
+        <div class="ap-acts"><button class="btn-g">승인</button><button class="btn-r">거부</button></div>
+      </div>
+      <div class="ap-card pending">
+        <span class="ap-icon">📤</span>
+        <div class="ap-info">
+          <div class="ap-file">📄 개발팀_소스코드_v2.3.zip <span style="font-size:10px;color:var(--text-muted)">(45.7 MB)</span></div>
+          <div class="ap-meta">수신자: devpartner@vendor.co.kr &nbsp;|&nbsp; 요청자: 이철수 (개발팀) &nbsp;|&nbsp; 사유: 외주 개발사 납품</div>
+          <div class="ap-time">2025-04-22 18:30:12</div>
+        </div>
+        <span class="badge by">대기</span>
+        <div class="ap-acts"><button class="btn-g">승인</button><button class="btn-r">거부</button></div>
+      </div>
+      <div class="ap-card pending">
+        <span class="ap-icon">📤</span>
+        <div class="ap-info">
+          <div class="ap-file">📄 인사평가_2025_상반기.xlsx <span style="font-size:10px;color:var(--text-muted)">(2.1 MB)</span></div>
+          <div class="ap-meta">수신자: hr-consulting@hrfirm.com &nbsp;|&nbsp; 요청자: 정수진 (인사팀) &nbsp;|&nbsp; 사유: HR 컨설팅 외주</div>
+          <div class="ap-time">2025-04-22 17:55:44</div>
+        </div>
+        <span class="badge by">대기</span>
+        <div class="ap-acts"><button class="btn-g">승인</button><button class="btn-r">거부</button></div>
+      </div>
+      <!-- Done -->
+      <div class="ap-card done-a">
+        <span class="ap-icon">✅</span>
+        <div class="ap-info">
+          <div class="ap-file">📄 감사보고서_2024.pdf <span style="font-size:10px;color:var(--text-muted)">(3.5 MB)</span></div>
+          <div class="ap-meta">수신자: audit@kisa.or.kr &nbsp;|&nbsp; 요청자: 김관리 (정보보안팀)</div>
+          <div class="ap-time">승인: 2025-04-22 16:20:00 → 승인자: 한대표</div>
+        </div>
+        <span class="badge bg">승인됨</span>
+      </div>
+      <div class="ap-card done-r">
+        <span class="ap-icon">❌</span>
+        <div class="ap-info">
+          <div class="ap-file">📄 고객DB_전체_export.csv <span style="font-size:10px;color:var(--text-muted)">(120 MB)</span></div>
+          <div class="ap-meta">수신자: unknown@gmail.com &nbsp;|&nbsp; 요청자: 미인증 사용자</div>
+          <div class="ap-time">거부: 2025-04-22 14:10:00 → 사유: 미인증 외부 주소, 대용량 고객 데이터</div>
+        </div>
+        <span class="badge br">거부됨</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ 7. 보안 로그 ════════════ -->
+<div class="section" id="log">
+  <div class="titlebar"><div class="titlebar-left"><span class="titlebar-logo-text"><span class="titlebar-logo-jbm">JBM</span><span class="titlebar-logo-soft">SOFT</span></span><span style="color:var(--text-muted);font-size:13px;font-weight:600">Security Manager</span><span class="titlebar-badge">● 보안 활성화</span></div><div class="titlebar-right"><div class="lang-switcher"><button class="lang-b">KO</button><button class="lang-b" style="background:transparent;color:var(--text-muted)">EN</button></div><div class="win-btns"><button class="wb">─</button><button class="wb">□</button><button class="wb" style="background:rgba(239,68,68,0.15);color:var(--red)">✕</button></div></div></div>
+  <div class="page-wrapper">
+    <div class="sidebar">
+      <div class="sidebar-header"><div class="score-ring-wrap"><svg class="score-svg-el" viewBox="0 0 80 80"><defs><linearGradient id="sg7" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#3b82f6"/><stop offset="100%" style="stop-color:#06b6d4"/></linearGradient></defs><circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/><circle cx="40" cy="40" r="34" fill="none" stroke="url(#sg7)" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="10.68"/></svg><div class="score-inner"><span class="score-val">95</span><span class="score-lbl">보안점수</span></div></div></div>
+      <nav class="sidebar-nav">
+        <button class="nav-i"><span class="nav-icon">⊞</span><span class="nav-text">대시보드</span></button>
+        <button class="nav-i"><span class="nav-icon">🔑</span><span class="nav-text">비밀번호 &amp; 인증</span></button>
+        <button class="nav-i"><span class="nav-icon">📁</span><span class="nav-text">파일 보안</span></button>
+        <button class="nav-i"><span class="nav-icon">🌐</span><span class="nav-text">네트워크 &amp; 메일</span></button>
+        <button class="nav-i"><span class="nav-icon">🖥️</span><span class="nav-text">허용 PC 관리</span></button>
+        <button class="nav-i"><span class="nav-icon">✅</span><span class="nav-text">관리자 승인</span><span class="nav-badge">3</span></button>
+        <button class="nav-i active"><span class="nav-icon">📋</span><span class="nav-text">보안 로그</span></button>
+      </nav>
+      <div class="sidebar-footer"><div class="sys-row"><span>💻</span><span>JBMSOFT-SVR-01</span></div><div class="sys-row"><span>👤</span><span>admin (관리자)</span></div></div>
+    </div>
+    <div class="main-c">
+      <div class="page-title">보안 로그</div>
+      <div class="page-sub">모든 보안 이벤트 이력을 조회합니다 — 총 1,247건</div>
+      <div class="card">
+        <div class="card-header"><h3>📋 이벤트 로그</h3>
+          <div class="header-actions">
+            <select class="form-sel"><option>전체</option><option>차단</option><option>허용</option><option>경고</option></select>
+            <input type="text" placeholder="검색..." class="search-inp">
+            <button class="btn-o btn-sm">CSV 내보내기</button>
+            <button class="btn-d btn-sm">로그 초기화</button>
+          </div>
+        </div>
+        <div class="log-entry le-b"><span class="le-icon">🚫</span><div style="flex:1"><div class="le-msg">클립보드 복사 차단 — 파일: Q1_재무보고서_기밀.xlsx &nbsp;|&nbsp; 사용자: 박영희 (영업팀) &nbsp;|&nbsp; PC: JBMSOFT-MKT01</div></div><span class="le-time">2025-04-22 19:12:34</span></div>
+        <div class="log-entry le-b"><span class="le-icon">🚫</span><div style="flex:1"><div class="le-msg">외부 메일 첨부 차단 — 수신자: unknown@gmail.com &nbsp;|&nbsp; 파일: 영업계획_2025.docx &nbsp;|&nbsp; 사용자: 이철수</div></div><span class="le-time">2025-04-22 19:08:21</span></div>
+        <div class="log-entry le-w"><span class="le-icon">⚠️</span><div style="flex:1"><div class="le-msg">화면 녹화 프로그램 감지 — 프로세스: OBS Studio (obs64.exe) &nbsp;|&nbsp; PC: JBMSOFT-DEV02 &nbsp;|&nbsp; 자동 경고 발송</div></div><span class="le-time">2025-04-22 18:55:03</span></div>
+        <div class="log-entry le-a"><span class="le-icon">✅</span><div style="flex:1"><div class="le-msg">파일 이동 허용 — JBMSOFT-DEV01 → JBMSOFT-ADM &nbsp;|&nbsp; 파일: sprint_report.pdf &nbsp;|&nbsp; 허용 PC 간 전송</div></div><span class="le-time">2025-04-22 18:44:18</span></div>
+        <div class="log-entry le-b"><span class="le-icon">🚫</span><div style="flex:1"><div class="le-msg">USB 외부장치 차단 — 장치: SanDisk Ultra USB 3.0 &nbsp;|&nbsp; PC: JBMSOFT-FIN01 &nbsp;|&nbsp; 사용자: 최민준</div></div><span class="le-time">2025-04-22 18:31:55</span></div>
+        <div class="log-entry le-b"><span class="le-icon">🚫</span><div style="flex:1"><div class="le-msg">클라우드 업로드 차단 — 목적지: drive.google.com &nbsp;|&nbsp; 파일: 고객명단_2025.xlsx &nbsp;|&nbsp; 사용자: 박영희</div></div><span class="le-time">2025-04-22 17:22:11</span></div>
+        <div class="log-entry le-w"><span class="le-icon">⚠️</span><div style="flex:1"><div class="le-msg">로그인 실패 5회 — 계정: jung@jbmsoft.com &nbsp;|&nbsp; PC: JBMSOFT-HR01 &nbsp;|&nbsp; IP: 192.168.1.40 → 계정 잠금 처리</div></div><span class="le-time">2025-04-22 16:45:30</span></div>
+        <div class="log-entry le-a"><span class="le-icon">✅</span><div style="flex:1"><div class="le-msg">관리자 승인 파일 전송 — 감사보고서_2024.pdf → audit@kisa.or.kr &nbsp;|&nbsp; 승인자: 한대표</div></div><span class="le-time">2025-04-22 16:20:00</span></div>
+        <div class="log-entry le-b"><span class="le-icon">🚫</span><div style="flex:1"><div class="le-msg">비허용 PC 파일 접근 차단 — 출처: 192.168.1.99 (미등록 PC) &nbsp;|&nbsp; 대상: D:\Confidential\ &nbsp;|&nbsp; 자동 차단</div></div><span class="le-time">2025-04-22 15:10:44</span></div>
+        <div class="log-entry le-b"><span class="le-icon">🚫</span><div style="flex:1"><div class="le-msg">클립보드 복사 차단 — 파일: 내부감사_결과_초안.pdf &nbsp;|&nbsp; 사용자: 정수진 (인사팀)</div></div><span class="le-time">2025-04-22 14:55:19</span></div>
+        <div class="log-entry le-a"><span class="le-icon">✅</span><div style="flex:1"><div class="le-msg">화이트리스트 메일 전송 — partner@partner-corp.com &nbsp;|&nbsp; 파일: 계약서_2025_v3.pdf &nbsp;|&nbsp; 김관리</div></div><span class="le-time">2025-04-22 14:30:05</span></div>
+        <div class="log-entry le-w"><span class="le-icon">⚠️</span><div style="flex:1"><div class="le-msg">대용량 파일 감지 경고 — 파일: 고객DB_full_dump.sql (2.3 GB) &nbsp;|&nbsp; 전송 시도 차단 후 관리자 알림</div></div><span class="le-time">2025-04-22 13:18:50</span></div>
+        <div class="log-page">
+          <button class="btn-o btn-sm" disabled>이전</button>
+          <span>1 / 42 페이지 (총 1,247건)</span>
+          <button class="btn-o btn-sm">다음</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

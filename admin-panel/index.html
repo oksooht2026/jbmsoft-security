@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OKSOOHT Security Admin 🛡️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --red: #ef4444;
+            --green: #10b981;
+            --yellow: #f59e0b;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+        }
+
+        /* Layout */
+        .sidebar {
+            position: fixed;
+            left: 0; top: 0; bottom: 0; width: 260px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            z-index: 100;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+        }
+
+        /* Branding */
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent);
+        }
+
+        /* Navigation */
+        .nav-item {
+            padding: 12px 16px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--text-main);
+            box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 4px;
+            background: var(--accent);
+            opacity: 0.5;
+        }
+
+        .stat-value { font-size: 2rem; font-weight: 700; margin-top: 10px; }
+        .stat-label { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* Tables & Lists */
+        .data-card {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 2rem;
+        }
+
+        .table-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%; border-collapse: collapse; text-align: left;
+        }
+
+        th { color: var(--text-muted); font-size: 0.85rem; padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        td { padding: 16px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.9rem; }
+
+        .status-badge {
+            padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+        }
+        .online { background: rgba(16, 185, 129, 0.1); color: var(--green); }
+        .offline { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate { animation: fadeIn 0.5s ease forwards; }
+
+        .log-entry {
+            display: flex; align-items: center; gap: 15px; padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .log-type { width: 80px; font-weight: 600; font-size: 0.8rem; }
+        .blocked { color: var(--red); }
+        .allowed { color: var(--green); }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">🛡️ OKSOOHT <span>Security</span></div>
+        <div class="nav-item active">📊 대시보드</div>
+        <div class="nav-item">🖥️ PC 관리</div>
+        <div class="nav-item">📋 보안 로그</div>
+        <div class="nav-item">✅ 승인 관리</div>
+        <div class="nav-item">⚙️ 정책 설정</div>
+    </div>
+
+    <div class="main-content">
+        <header style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+            <h1 class="animate">실시간 보안 관제</h1>
+            <div id="connectionStatus" style="font-size: 0.9rem; color: var(--green);">● 서버 연결됨</div>
+        </header>
+
+        <div class="stats-grid animate">
+            <div class="stat-card">
+                <div class="stat-label">온라인 PC</div>
+                <div class="stat-value" id="onlinePcs">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">오늘 차단 이벤트</div>
+                <div class="stat-value" id="blockedToday" style="color: var(--red);">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">대기 중인 승인</div>
+                <div class="stat-value" id="pendingApprovals">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">총 등록 PC</div>
+                <div class="stat-value" id="totalPcs">0</div>
+            </div>
+        </div>
+
+        <div class="data-card animate" style="animation-delay: 0.1s;">
+            <div class="table-header">
+                <h2>실시간 보안 로그</h2>
+                <button style="background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">새로고침</button>
+            </div>
+            <div id="logList">
+                <div class="empty-state" style="text-align: center; padding: 40px; color: var(--text-muted);">로그 데이터를 불러오는 중...</div>
+            </div>
+        </div>
+
+        <div class="data-card animate" style="animation-delay: 0.2s;">
+            <div class="table-header">
+                <h2>PC 상태 목록</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>호스트네임</th>
+                        <th>MAC 주소</th>
+                        <th>IP 주소</th>
+                        <th>상태</th>
+                        <th>마지막 접속</th>
+                    </tr>
+                </thead>
+                <tbody id="pcTableBody">
+                    <!-- 데이터가 여기에 동적으로 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://oksooht.vercel.app/api';
+
+        async function fetchStats() {
+            try {
+                const res = await fetch(`${API_BASE}/stats`);
+                const data = await res.json();
+                document.getElementById('onlinePcs').textContent = data.onlinePcs;
+                document.getElementById('blockedToday').textContent = data.blockedToday;
+                document.getElementById('pendingApprovals').textContent = data.pendingApprovals;
+                document.getElementById('totalPcs').textContent = data.totalPcs;
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch(`${API_BASE}/logs?limit=10`);
+                const data = await res.json();
+                const container = document.getElementById('logList');
+                if (data.length === 0) {
+                    container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">표시할 로그가 없습니다.</div>';
+                    return;
+                }
+                container.innerHTML = data.map(log => `
+                    <div class="log-entry">
+                        <div class="log-type ${log.log_type}">${log.log_type.toUpperCase()}</div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600;">${log.message}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">${log.pc_name} (${log.ip_address})</div>
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono';">${new Date(log.timestamp).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        // 초기화
+        setInterval(() => {
+            fetchStats();
+            fetchLogs();
+        }, 5000);
+        fetchStats();
+        fetchLogs();
+    </script>
+</body>
+</html>

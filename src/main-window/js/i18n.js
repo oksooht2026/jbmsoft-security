@@ -1,0 +1,317 @@
+// i18n.js - 한/영 다국어 지원 모듈
+const translations = {
+  ko: {
+    app_title: "JBMSOFT Security",
+    status_active: "보안 활성화",
+    score_label: "보안점수",
+    nav_dashboard: "대시보드",
+    nav_password: "비밀번호 & 인증",
+    nav_filesec: "파일 보안",
+    nav_network: "네트워크 & 메일",
+    nav_trustedpc: "허용 PC 관리",
+    nav_approval: "관리자 승인",
+    nav_logs: "보안 로그",
+
+    dash_sub: "실시간 보안 현황을 한눈에 확인하세요",
+    dash_policy: "보안 정책 현황",
+    dash_recent_log: "최근 보안 이벤트",
+    dash_trusted_pcs: "허용 PC 현황",
+
+    stat_blocked: "오늘 차단 이벤트",
+    stat_pcs: "허용된 PC",
+    stat_pending: "승인 대기",
+    stat_whitelist: "메일 화이트리스트",
+    stat_today: "오늘",
+
+    btn_detail: "상세 설정 →",
+    btn_all: "전체 보기 →",
+    btn_manage: "관리 →",
+    btn_save: "저장",
+    btn_add: "추가",
+    btn_cancel: "취소",
+    btn_register: "등록",
+    btn_add_user: "+ 사용자 추가",
+    btn_add_pc: "+ PC 등록",
+    btn_add_folder: "+ 폴더 추가",
+    btn_export: "내보내기",
+    btn_clear_log: "로그 초기화",
+    btn_prev: "이전",
+    btn_next: "다음",
+    btn_register_this: "이 PC 등록",
+    btn_test_req: "요청 추가",
+    btn_confirm: "확인",
+
+    pw_sub: "관리자 비밀번호 및 인증 정책을 설정합니다",
+    pw_admin_title: "관리자 비밀번호",
+    pw_current: "현재 비밀번호",
+    pw_new: "새 비밀번호",
+    pw_confirm: "비밀번호 확인",
+    pw_lock_policy: "잠금 정책",
+    pw_auto_lock: "자동 잠금 시간 (분)",
+    pw_screen_lock: "화면 잠금 시 보안 활성화",
+    pw_screen_lock_desc: "화면 보호기 실행 시 자동으로 보안 강화",
+    pw_fail_limit: "로그인 실패 횟수 제한",
+    pw_fail_limit_desc: "5회 이상 실패 시 관리자에게 알림",
+    pw_users: "사용자 계정 관리",
+    pw_admin_pw: "관리자 비밀번호",
+
+    tbl_name: "이름",
+    tbl_dept: "부서",
+    tbl_role: "역할",
+    tbl_last_login: "마지막 로그인",
+    tbl_status: "상태",
+    tbl_actions: "작업",
+
+    role_user: "일반 사용자",
+    role_admin: "관리자",
+    user_email: "이메일",
+
+    fs_sub: "파일 복사·이동 차단 및 감시 정책을 설정합니다",
+    fs_guard_title: "파일 보호 정책",
+    fs_clipboard: "클립보드 파일 복사 차단",
+    fs_clipboard_desc: "파일을 클립보드로 복사하는 동작을 차단합니다",
+    fs_file_guard: "파일 보안 감시 활성화",
+    fs_file_guard_desc: "지정 폴더의 파일 변경·이동을 실시간 감시합니다",
+    fs_usb: "USB 저장장치 차단",
+    fs_usb_desc: "이동식 USB 드라이브로의 파일 전송을 차단합니다",
+    fs_print_guard: "화면 캡처 감지",
+    fs_print_guard_desc: "스크린샷·화면 녹화 프로그램 실행 시 경고합니다",
+    fs_ext_title: "차단 파일 형식",
+    fs_ext_desc: "외부로 전송을 차단할 파일 확장자를 설정합니다",
+    fs_watch_title: "감시 폴더 설정",
+
+    net_sub: "메일 전송 차단 및 네트워크 보안 정책을 설정합니다",
+    net_mail_title: "메일 전송 보안",
+    net_mail_guard: "메일 첨부파일 전송 차단",
+    net_mail_guard_desc: "화이트리스트 외 수신자에게 첨부파일 전송을 차단합니다",
+    net_cloud_block: "외부 클라우드 업로드 차단",
+    net_cloud_block_desc: "구글 드라이브, 드롭박스 등 클라우드 업로드를 차단합니다",
+    net_smtp_ports: "감시 SMTP 포트",
+    net_whitelist_title: "메일 화이트리스트",
+    net_whitelist_desc: "파일 첨부 전송이 허용된 이메일 주소 또는 도메인",
+    net_iface_title: "현재 네트워크 인터페이스",
+
+    pc_sub: "보안 파일 이동이 허용된 PC 목록을 관리합니다",
+    pc_list_title: "허용 PC 목록",
+    pc_col_name: "PC 이름",
+    pc_col_ip: "IP 주소",
+    pc_col_mac: "MAC 주소",
+    pc_col_dept: "부서",
+    pc_col_added: "등록일",
+    pc_col_status: "상태",
+    pc_this_pc: "현재 PC 정보",
+
+    ap_sub: "파일 전송 예외 요청을 검토하고 승인/거부합니다",
+    ap_all: "전체",
+    ap_pending: "대기 중",
+    ap_approved: "승인됨",
+    ap_rejected: "거부됨",
+    ap_test: "승인 요청 테스트",
+    ap_test_desc: "파일 전송 승인 요청을 시뮬레이션합니다",
+    btn_approve: "승인",
+    btn_reject: "거부",
+
+    log_sub: "모든 보안 이벤트 이력을 확인합니다",
+    log_title: "이벤트 로그",
+    log_all: "전체",
+    log_blocked: "차단",
+    log_allowed: "허용",
+    log_warning: "경고",
+
+    no_events: "이벤트 없음",
+    no_pcs: "등록된 PC가 없습니다",
+    no_folders: "감시 폴더가 없습니다. 폴더를 추가하세요.",
+    no_requests: "대기 중인 요청이 없습니다",
+    no_logs: "보안 로그가 없습니다",
+    loading: "로딩 중...",
+
+    modal_add_pc_title: "PC 등록",
+    modal_add_user_title: "사용자 추가",
+    modal_auth_title: "관리자 인증",
+    modal_auth_desc: "이 작업을 수행하려면 관리자 비밀번호가 필요합니다.",
+
+    toast_saved: "설정이 저장되었습니다",
+    toast_pw_changed: "비밀번호가 변경되었습니다",
+    toast_pw_mismatch: "비밀번호가 일치하지 않습니다",
+    toast_pw_empty: "비밀번호를 입력하세요",
+    toast_pc_added: "PC가 등록되었습니다",
+    toast_pc_removed: "PC가 삭제되었습니다",
+    toast_user_added: "사용자가 추가되었습니다",
+    toast_approved: "요청이 승인되었습니다",
+    toast_rejected: "요청이 거부되었습니다",
+    toast_log_cleared: "로그가 초기화되었습니다",
+    toast_exported: "로그가 내보내기되었습니다",
+    toast_fill_all: "모든 필드를 입력하세요",
+  },
+  en: {
+    app_title: "JBMSOFT Security",
+    status_active: "Security Active",
+    score_label: "Sec Score",
+    nav_dashboard: "Dashboard",
+    nav_password: "Password & Auth",
+    nav_filesec: "File Security",
+    nav_network: "Network & Mail",
+    nav_trustedpc: "Trusted PCs",
+    nav_approval: "Admin Approval",
+    nav_logs: "Security Logs",
+
+    dash_sub: "Monitor your real-time security status at a glance",
+    dash_policy: "Security Policy Status",
+    dash_recent_log: "Recent Security Events",
+    dash_trusted_pcs: "Trusted PC Status",
+
+    stat_blocked: "Blocked Today",
+    stat_pcs: "Trusted PCs",
+    stat_pending: "Pending Approval",
+    stat_whitelist: "Mail Whitelist",
+    stat_today: "today",
+
+    btn_detail: "Details →",
+    btn_all: "View All →",
+    btn_manage: "Manage →",
+    btn_save: "Save",
+    btn_add: "Add",
+    btn_cancel: "Cancel",
+    btn_register: "Register",
+    btn_add_user: "+ Add User",
+    btn_add_pc: "+ Register PC",
+    btn_add_folder: "+ Add Folder",
+    btn_export: "Export",
+    btn_clear_log: "Clear Logs",
+    btn_prev: "Prev",
+    btn_next: "Next",
+    btn_register_this: "Register This PC",
+    btn_test_req: "Add Request",
+    btn_confirm: "Confirm",
+
+    pw_sub: "Configure admin password and authentication policies",
+    pw_admin_title: "Admin Password",
+    pw_current: "Current Password",
+    pw_new: "New Password",
+    pw_confirm: "Confirm Password",
+    pw_lock_policy: "Lock Policy",
+    pw_auto_lock: "Auto Lock Timeout (minutes)",
+    pw_screen_lock: "Security on Screen Lock",
+    pw_screen_lock_desc: "Automatically enhance security when screensaver activates",
+    pw_fail_limit: "Login Failure Limit",
+    pw_fail_limit_desc: "Notify admin after 5 failed attempts",
+    pw_users: "User Account Management",
+    pw_admin_pw: "Admin Password",
+
+    tbl_name: "Name",
+    tbl_dept: "Department",
+    tbl_role: "Role",
+    tbl_last_login: "Last Login",
+    tbl_status: "Status",
+    tbl_actions: "Actions",
+
+    role_user: "Standard User",
+    role_admin: "Administrator",
+    user_email: "Email",
+
+    fs_sub: "Configure file copy/move restrictions and monitoring policies",
+    fs_guard_title: "File Protection Policy",
+    fs_clipboard: "Block Clipboard File Copy",
+    fs_clipboard_desc: "Blocks file copy to clipboard operations",
+    fs_file_guard: "Enable File Security Monitor",
+    fs_file_guard_desc: "Real-time monitoring of file changes in designated folders",
+    fs_usb: "Block USB Storage Devices",
+    fs_usb_desc: "Block file transfers to removable USB drives",
+    fs_print_guard: "Screen Capture Detection",
+    fs_print_guard_desc: "Warn when screenshot or screen recording apps are detected",
+    fs_ext_title: "Blocked File Types",
+    fs_ext_desc: "Set file extensions to block from external transmission",
+    fs_watch_title: "Monitored Folders",
+
+    net_sub: "Configure mail transmission blocking and network security policies",
+    net_mail_title: "Mail Transmission Security",
+    net_mail_guard: "Block Mail Attachment Sending",
+    net_mail_guard_desc: "Block attachments to non-whitelisted recipients",
+    net_cloud_block: "Block External Cloud Upload",
+    net_cloud_block_desc: "Block uploads to Google Drive, Dropbox, and other cloud services",
+    net_smtp_ports: "Monitored SMTP Ports",
+    net_whitelist_title: "Mail Whitelist",
+    net_whitelist_desc: "Email addresses or domains allowed to receive file attachments",
+    net_iface_title: "Current Network Interfaces",
+
+    pc_sub: "Manage PCs allowed to transfer security-protected files",
+    pc_list_title: "Trusted PC List",
+    pc_col_name: "PC Name",
+    pc_col_ip: "IP Address",
+    pc_col_mac: "MAC Address",
+    pc_col_dept: "Department",
+    pc_col_added: "Added Date",
+    pc_col_status: "Status",
+    pc_this_pc: "This PC Info",
+
+    ap_sub: "Review and approve/reject file transfer exception requests",
+    ap_all: "All",
+    ap_pending: "Pending",
+    ap_approved: "Approved",
+    ap_rejected: "Rejected",
+    ap_test: "Test Approval Request",
+    ap_test_desc: "Simulate a file transfer approval request",
+    btn_approve: "Approve",
+    btn_reject: "Reject",
+
+    log_sub: "View all security event history",
+    log_title: "Event Log",
+    log_all: "All",
+    log_blocked: "Blocked",
+    log_allowed: "Allowed",
+    log_warning: "Warning",
+
+    no_events: "No events",
+    no_pcs: "No registered PCs",
+    no_folders: "No watched folders. Add a folder to get started.",
+    no_requests: "No pending requests",
+    no_logs: "No security logs",
+    loading: "Loading...",
+
+    modal_add_pc_title: "Register PC",
+    modal_add_user_title: "Add User",
+    modal_auth_title: "Admin Authentication",
+    modal_auth_desc: "Admin password is required to perform this action.",
+
+    toast_saved: "Settings saved successfully",
+    toast_pw_changed: "Password changed successfully",
+    toast_pw_mismatch: "Passwords do not match",
+    toast_pw_empty: "Please enter a password",
+    toast_pc_added: "PC registered successfully",
+    toast_pc_removed: "PC removed",
+    toast_user_added: "User added successfully",
+    toast_approved: "Request approved",
+    toast_rejected: "Request rejected",
+    toast_log_cleared: "Logs cleared",
+    toast_exported: "Logs exported",
+    toast_fill_all: "Please fill in all fields",
+  }
+};
+
+let currentLang = 'ko';
+
+function t(key) {
+  return (translations[currentLang] && translations[currentLang][key]) ||
+         (translations['ko'][key]) || key;
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+}
+
+function switchLang(lang) {
+  currentLang = lang;
+  document.getElementById('btnKo').classList.toggle('active', lang === 'ko');
+  document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+  applyTranslations();
+  if (window.electronAPI) {
+    window.electronAPI.updateLanguage(lang);
+    window.electronAPI.setStore('language', lang);
+  }
+  // 동적 콘텐츠 재렌더링
+  if (typeof renderApprovals === 'function') renderApprovals();
+  if (typeof renderDashboard === 'function') renderDashboard();
+}
