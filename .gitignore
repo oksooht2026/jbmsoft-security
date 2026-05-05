@@ -4,3 +4,9 @@ node_modules/
 *.log
 dist/
 out/
+# 대용량 블랙리스트 파일 (앱 설치 후 자동 생성됨)
+security/default-blocklist.json
+# 임시 스크립트
+generate_blocklist.js
+fetch_real_blocklist.js
+scratch*.js
