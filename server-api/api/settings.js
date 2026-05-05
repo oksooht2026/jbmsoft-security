@@ -32,8 +32,22 @@ module.exports = async (req, res) => {
   }
 
   if (req.method === 'PUT') {
-    const { key, value } = req.body;
+    const { key, value, current_password } = req.body;
     try {
+      // admin_password 변경 시 기존 비밀번호 검증
+      if (key === 'admin_password') {
+          const { data: oldData } = await supabase.from('settings').select('value').eq('key', 'admin_password').single();
+          if (oldData && oldData.value) {
+              // 저장된 비밀번호는 문자열 값
+              let storedPassword = oldData.value;
+              try { storedPassword = JSON.parse(storedPassword); } catch(e) {}
+              
+              if (storedPassword && storedPassword !== current_password) {
+                  return res.status(401).json({ error: '현재 비밀번호가 일치하지 않습니다.' });
+              }
+          }
+      }
+
       const { data, error } = await supabase
         .from('settings')
         .update({ value, updated_at: new Date().toISOString() })

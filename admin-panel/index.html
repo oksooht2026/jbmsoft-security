@@ -164,6 +164,9 @@
                 <a class="nav-item active" onclick="switchTab('dashboard')">
                     <i data-lucide="activity"></i> 관제 대시보드
                 </a>
+                <a class="nav-item" onclick="switchTab('approvals')">
+                    <i data-lucide="check-square"></i> 결재 / 승인함
+                </a>
                 <a class="nav-item" onclick="switchTab('settings')">
                     <i data-lucide="settings"></i> 글로벌 정책 설정
                 </a>
@@ -228,6 +231,31 @@
                 </div>
             </div>
 
+            <!-- APPROVALS TAB -->
+            <div id="tab-approvals" class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="check-square"></i> 파일/메일 전송 승인 대기열</h2>
+                    <button class="btn" onclick="fetchApprovals()"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> 새로고침</button>
+                </div>
+                <div class="glass-panel" style="overflow: hidden;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>요청 PC</th>
+                                <th>파일명 / 내용</th>
+                                <th>수신자</th>
+                                <th>요청자</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approvalTableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">요청된 결재 내역이 없습니다.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- SETTINGS TAB -->
             <div id="tab-settings" class="data-section">
                 <div class="section-header">
@@ -235,9 +263,17 @@
                 </div>
                 <div class="glass-panel" style="padding: 2rem; max-width: 600px;">
                     <div class="form-group">
-                        <label>관리자 마스터 비밀번호 (앱 종료/삭제 방어용)</label>
-                        <input type="password" id="adminPassword" class="form-control" value="oksooht2026">
-                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">* 트레이 아이콘 종료, 정책 변경, 프로그램 무력화 시 요구되는 비밀번호입니다.</p>
+                        <label>현재 마스터 비밀번호</label>
+                        <input type="password" id="currentPassword" class="form-control" placeholder="현재 비밀번호 입력">
+                    </div>
+                    <div class="form-group">
+                        <label>새 마스터 비밀번호</label>
+                        <input type="password" id="adminPassword" class="form-control" placeholder="새 비밀번호 입력">
+                    </div>
+                    <div class="form-group">
+                        <label>새 마스터 비밀번호 확인</label>
+                        <input type="password" id="adminPasswordConfirm" class="form-control" placeholder="새 비밀번호 재입력">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">* 트레이 아이콘 종료, 정책 변경, 프로그램 무력화 시 요구되는 글로벌 비밀번호입니다.</p>
                     </div>
                     <div class="form-group">
                         <label>차단할 파일 확장자 (콤마로 구분)</label>
@@ -265,6 +301,7 @@
             document.querySelectorAll('.data-section').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tabId).classList.add('active');
             if (tabId === 'settings') loadSettings();
+            if (tabId === 'approvals') fetchApprovals();
         }
 
         async function fetchLogs() {
@@ -315,33 +352,113 @@
             } catch (e) { console.error(e); }
         }
 
+        async function fetchApprovals() {
+            try {
+                const res = await fetch(`${API_BASE}/approvals`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const container = document.getElementById('approvalTableBody');
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">요청된 결재 내역이 없습니다.</td></tr>';
+                    return;
+                }
+                
+                container.innerHTML = data.map(app => {
+                    let statusHtml = '';
+                    if (app.status === 'pending') statusHtml = '<span class="log-badge badge-warning">대기 중</span>';
+                    else if (app.status === 'approved') statusHtml = '<span class="log-badge badge-info">승인됨</span>';
+                    else statusHtml = '<span class="log-badge badge-critical">거부됨</span>';
+
+                    let actionHtml = app.status === 'pending' ? `
+                        <button class="btn primary" onclick="handleApproval('${app.id}', true)" style="padding:4px 8px;font-size:0.8rem">승인</button>
+                        <button class="btn" onclick="handleApproval('${app.id}', false)" style="padding:4px 8px;font-size:0.8rem;color:var(--danger);border-color:var(--danger)">거부</button>
+                    ` : `<span style="color:var(--text-muted);font-size:0.85rem">${new Date(app.resolved_at).toLocaleString()} 처리됨</span>`;
+
+                    return `
+                    <tr>
+                        <td style="font-weight: 500;">${app.pc_name || '알수없는 PC'} <br><span style="font-size:0.8rem;color:var(--text-muted)">${app.ip_address || '-'}</span></td>
+                        <td style="color: var(--primary);">${app.filename}</td>
+                        <td style="color: var(--text-muted);">${app.recipient || '-'}</td>
+                        <td style="font-family: monospace;">${app.requester || '-'}</td>
+                        <td>${statusHtml}</td>
+                        <td style="display:flex;gap:8px;">${actionHtml}</td>
+                    </tr>
+                `}).join('');
+            } catch (e) { console.error(e); }
+        }
+
+        async function handleApproval(id, approved) {
+            try {
+                const res = await fetch(`${API_BASE}/approvals?id=${id}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ approved })
+                });
+                if (res.ok) {
+                    fetchApprovals();
+                } else {
+                    alert('처리 중 오류가 발생했습니다.');
+                }
+            } catch (e) { console.error(e); }
+        }
+
         async function loadSettings() {
             try {
                 const res = await fetch(`${API_BASE}/settings`);
                 if (!res.ok) return;
                 const data = await res.json();
-                if (data.admin_password) document.getElementById('adminPassword').value = data.admin_password;
+                // 패스워드는 빈칸으로 둡니다.
                 if (data.blocked_extensions) document.getElementById('blockedExts').value = data.blocked_extensions.join(', ');
                 if (data.blocked_sites) document.getElementById('blockedSites').value = data.blocked_sites.join(', ');
             } catch (e) { console.error(e); }
         }
 
         async function saveSettings() {
-            const pwd = document.getElementById('adminPassword').value;
+            const currPwd = document.getElementById('currentPassword').value;
+            const newPwd = document.getElementById('adminPassword').value;
+            const confirmPwd = document.getElementById('adminPasswordConfirm').value;
+            
             const exts = document.getElementById('blockedExts').value.split(',').map(s=>s.trim());
             const sites = document.getElementById('blockedSites').value.split(',').map(s=>s.trim());
             
+            if (newPwd) {
+                if (newPwd !== confirmPwd) {
+                    alert('새 비밀번호가 일치하지 않습니다.');
+                    return;
+                }
+                if (!currPwd) {
+                    alert('비밀번호를 변경하려면 현재 비밀번호를 입력해야 합니다.');
+                    return;
+                }
+            }
+            
             try {
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key: 'admin_password', value: pwd }) });
+                if (newPwd) {
+                    const pwdRes = await fetch(`${API_BASE}/settings`, { 
+                        method: 'PUT', 
+                        headers: {'Content-Type': 'application/json'}, 
+                        body: JSON.stringify({ key: 'admin_password', value: newPwd, current_password: currPwd }) 
+                    });
+                    if (!pwdRes.ok) {
+                        const errData = await pwdRes.json();
+                        alert('비밀번호 변경 실패: ' + (errData.error || '현재 비밀번호가 틀렸습니다.'));
+                        return;
+                    }
+                }
+                
                 await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key: 'blocked_extensions', value: JSON.stringify(exts) }) });
                 await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key: 'blocked_sites', value: JSON.stringify(sites) }) });
+                
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminPasswordConfirm').value = '';
                 
                 document.getElementById('saveMsg').style.display = 'block';
                 setTimeout(() => document.getElementById('saveMsg').style.display = 'none', 3000);
             } catch (e) { console.error(e); alert('저장 실패'); }
         }
 
-        function updateAll() { fetchLogs(); fetchPCs(); }
+        function updateAll() { fetchLogs(); fetchPCs(); if(document.getElementById('tab-approvals').classList.contains('active')) fetchApprovals(); }
         updateAll(); setInterval(updateAll, 10000);
     </script>
 </body>
