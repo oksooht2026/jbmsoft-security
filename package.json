@@ -29,7 +29,7 @@
   "build": {
     "appId": "com.oksoohitech.security",
     "productName": "옥수하이테크 보안솔루션",
-    "copyright": "Copyright © 2026 Oksoo Hi-Tech",
+    "copyright": "Copyright © 2026 JBM SOFT",
     "win": {
       "target": "nsis"
     },
