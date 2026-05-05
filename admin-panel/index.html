@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OKSOOHT Security Admin 🛡️</title>
+    <title>OKSOOHT Security Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
             --bg-base: #050505;
@@ -17,9 +18,7 @@
             --text-main: #ffffff;
             --text-muted: #8b8b99;
             --danger: #ff2a55;
-            --danger-glow: rgba(255, 42, 85, 0.4);
             --success: #00ff88;
-            --success-glow: rgba(0, 255, 136, 0.4);
             --border-light: rgba(255, 255, 255, 0.08);
             --glass-blur: blur(20px);
         }
@@ -38,7 +37,6 @@
             background-attachment: fixed;
         }
 
-        /* Glassmorphism Utilities */
         .glass-panel {
             background: var(--bg-surface);
             backdrop-filter: var(--glass-blur);
@@ -48,346 +46,132 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
 
-        /* Layout */
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
+        .dashboard-container { display: flex; min-height: 100vh; }
 
         .sidebar {
-            width: 280px;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
+            width: 280px; padding: 2rem; display: flex; flex-direction: column; gap: 2rem;
             border-right: 1px solid var(--border-light);
-            background: rgba(5, 5, 5, 0.3);
-            backdrop-filter: blur(10px);
-            z-index: 10;
+            background: rgba(5, 5, 5, 0.3); backdrop-filter: blur(10px); z-index: 10;
         }
 
-        .main-content {
-            flex: 1;
-            padding: 2.5rem 3rem;
-            overflow-y: auto;
-        }
+        .main-content { flex: 1; padding: 2.5rem 3rem; overflow-y: auto; }
 
-        /* Branding */
         .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            background: linear-gradient(135deg, var(--primary), #ffffff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: 700;
+            letter-spacing: -0.5px; background: linear-gradient(135deg, var(--primary), #ffffff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        .brand-icon {
-            font-size: 1.8rem;
-            filter: drop-shadow(0 0 8px var(--primary-glow));
-        }
-
-        /* Navigation */
-        .nav-menu {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
+        .nav-menu { display: flex; flex-direction: column; gap: 8px; }
         .nav-item {
-            padding: 14px 18px;
-            border-radius: 16px;
-            color: var(--text-muted);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            font-weight: 500;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            border: 1px solid transparent;
+            padding: 14px 18px; border-radius: 16px; color: var(--text-muted);
+            display: flex; align-items: center; gap: 14px; font-weight: 500;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 1px solid transparent;
         }
-
-        .nav-item:hover {
-            color: var(--text-main);
-            background: rgba(255, 255, 255, 0.03);
-            transform: translateX(5px);
-        }
-
+        .nav-item:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.03); transform: translateX(5px); }
         .nav-item.active {
             background: linear-gradient(90deg, rgba(0, 240, 255, 0.1), transparent);
-            color: var(--primary);
-            border: 1px solid rgba(0, 240, 255, 0.2);
+            color: var(--primary); border: 1px solid rgba(0, 240, 255, 0.2);
             box-shadow: inset 4px 0 0 var(--primary);
         }
 
-        /* Header */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-        }
-
-        .page-title {
-            font-size: 2.2rem;
-            font-weight: 600;
-            letter-spacing: -1px;
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
+        .page-title { font-size: 2.2rem; font-weight: 600; letter-spacing: -1px; }
 
         .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 100px;
-            background: rgba(0, 255, 136, 0.1);
-            border: 1px solid rgba(0, 255, 136, 0.2);
-            color: var(--success);
-            font-size: 0.9rem;
-            font-weight: 500;
+            display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 100px;
+            background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); color: var(--success);
+            font-size: 0.9rem; font-weight: 500;
         }
-
         .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            box-shadow: 0 0 10px var(--success);
-            animation: pulse 2s infinite;
+            width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+            box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite;
         }
 
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 3rem;
-        }
-
-        .stat-card {
-            padding: 1.8rem;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-        }
-
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+        .stat-card { padding: 1.8rem; position: relative; overflow: hidden; transition: transform 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); }
         .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
-            pointer-events: none;
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%); pointer-events: none;
         }
-
-        .stat-icon {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            font-size: 5rem;
-            opacity: 0.05;
-            transform: rotate(15deg);
-        }
-
-        .stat-label {
-            color: var(--text-muted);
-            font-size: 0.95rem;
-            font-weight: 500;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
+        .stat-icon { position: absolute; top: 10px; right: 10px; opacity: 0.1; width: 80px; height: 80px; color: var(--primary); }
+        .stat-card.danger .stat-icon { color: var(--danger); }
+        
+        .stat-label { color: var(--text-muted); font-size: 0.95rem; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; }
         .stat-value {
-            font-size: 3rem;
-            font-weight: 700;
-            background: linear-gradient(to right, #fff, #a0a0a0);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-size: 3rem; font-weight: 700;
+            background: linear-gradient(to right, #fff, #a0a0a0); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
+        .stat-card.danger .stat-value { background: linear-gradient(to right, var(--danger), #ff8a9f); -webkit-background-clip: text; }
+        .stat-card.primary .stat-value { background: linear-gradient(to right, var(--primary), #8affff); -webkit-background-clip: text; }
 
-        .stat-card.danger .stat-value {
-            background: linear-gradient(to right, var(--danger), #ff8a9f);
-            -webkit-background-clip: text;
-        }
+        .data-section { margin-bottom: 3rem; display: none; }
+        .data-section.active { display: block; animation: fadeInUp 0.4s ease forwards; }
 
-        .stat-card.primary .stat-value {
-            background: linear-gradient(to right, var(--primary), #8affff);
-            -webkit-background-clip: text;
-        }
-
-        /* Data Sections */
-        .data-section {
-            margin-bottom: 3rem;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .section-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .section-title { font-size: 1.3rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
 
         .btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-light);
-            color: var(--text-main);
-            padding: 8px 16px;
-            border-radius: 12px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-light); color: var(--text-main);
+            padding: 8px 16px; border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 500;
+            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 6px;
         }
+        .btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+        .btn.primary { background: rgba(0, 240, 255, 0.2); color: var(--primary); border-color: rgba(0, 240, 255, 0.3); }
+        .btn.primary:hover { background: rgba(0, 240, 255, 0.3); }
 
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        /* Logs List */
-        .log-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .log-item {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 16px 20px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 16px;
-            border: 1px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .log-item:hover {
-            background: rgba(255, 255, 255, 0.02);
-            border-color: var(--border-light);
-        }
-
+        .log-item { display: flex; align-items: center; gap: 20px; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .log-badge {
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            width: 100px;
-            text-align: center;
+            padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700;
+            text-transform: uppercase; width: 100px; text-align: center;
         }
-
-        .badge-blocked, .badge-critical { background: rgba(255, 42, 85, 0.15); color: var(--danger); border: 1px solid rgba(255, 42, 85, 0.3); }
-        .badge-allowed, .badge-info { background: rgba(0, 240, 255, 0.15); color: var(--primary); border: 1px solid rgba(0, 240, 255, 0.3); }
+        .badge-critical { background: rgba(255, 42, 85, 0.15); color: var(--danger); border: 1px solid rgba(255, 42, 85, 0.3); }
+        .badge-info { background: rgba(0, 240, 255, 0.15); color: var(--primary); border: 1px solid rgba(0, 240, 255, 0.3); }
         .badge-warning { background: rgba(112, 0, 255, 0.15); color: #b070ff; border: 1px solid rgba(112, 0, 255, 0.3); }
 
         .log-content { flex: 1; }
         .log-msg { font-weight: 500; margin-bottom: 4px; font-size: 1.05rem; }
-        .log-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 15px; }
+        .log-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 15px; align-items: center; }
         .log-time { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); }
 
-        /* Tables */
-        .custom-table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
+        .custom-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        .custom-table th { text-align: left; padding: 16px 20px; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; border-bottom: 1px solid var(--border-light); }
+        .custom-table td { padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); font-size: 0.95rem; }
+
+        /* Settings Form */
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500; }
+        .form-control {
+            width: 100%; padding: 12px 16px; border-radius: 12px;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border-light);
+            color: white; font-family: 'JetBrains Mono', monospace; font-size: 1rem;
+            transition: border-color 0.3s;
         }
+        .form-control:focus { outline: none; border-color: var(--primary); }
 
-        .custom-table th {
-            text-align: left;
-            padding: 16px 20px;
-            color: var(--text-muted);
-            font-weight: 500;
-            font-size: 0.9rem;
-            border-bottom: 1px solid var(--border-light);
-        }
-
-        .custom-table td {
-            padding: 16px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
-            font-size: 0.95rem;
-        }
-
-        .custom-table tr:last-child td { border-bottom: none; }
-        .custom-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
-
-        .tag-online { color: var(--success); display: flex; align-items: center; gap: 6px; }
-        .tag-online::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
-        
-        .tag-offline { color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
-        .tag-offline::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
-
-        /* Animations */
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
-            70% { box-shadow: 0 0 0 6px rgba(0, 255, 136, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
-        }
-
-        .fade-in-up {
-            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        @keyframes fadeInUp {
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .delay-1 { animation-delay: 0.1s; }
-        .delay-2 { animation-delay: 0.2s; }
-        .delay-3 { animation-delay: 0.3s; }
-
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
     <div class="dashboard-container">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="brand">
-                <span class="brand-icon">🛡️</span> OKSOOHT
+                <i data-lucide="shield-check" class="brand-icon"></i> OKSOOHT
             </div>
             <nav class="nav-menu">
-                <a class="nav-item active">
-                    <span style="font-size: 1.2rem;">⚡</span> 관제 대시보드
+                <a class="nav-item active" onclick="switchTab('dashboard')">
+                    <i data-lucide="activity"></i> 관제 대시보드
                 </a>
-                <a class="nav-item">
-                    <span style="font-size: 1.2rem;">💻</span> 디바이스 관리
-                </a>
-                <a class="nav-item">
-                    <span style="font-size: 1.2rem;">📋</span> 통합 보안 로그
-                </a>
-                <a class="nav-item">
-                    <span style="font-size: 1.2rem;">✅</span> 결재 / 승인함
-                </a>
-                <a class="nav-item">
-                    <span style="font-size: 1.2rem;">⚙️</span> 글로벌 정책 설정
+                <a class="nav-item" onclick="switchTab('settings')">
+                    <i data-lucide="settings"></i> 글로벌 정책 설정
                 </a>
             </nav>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <header class="header fade-in-up">
+            <header class="header">
                 <div>
                     <h1 class="page-title">실시간 보안 센터</h1>
                     <p style="color: var(--text-muted); margin-top: 5px;">전사적 보안 현황을 실시간으로 모니터링합니다.</p>
@@ -398,97 +182,89 @@
                 </div>
             </header>
 
-            <!-- Stats -->
-            <div class="stats-grid fade-in-up delay-1">
-                <div class="glass-panel stat-card primary">
-                    <div class="stat-icon">💻</div>
-                    <div class="stat-label">온라인 에이전트</div>
-                    <div class="stat-value" id="onlinePcs">0</div>
-                </div>
-                <div class="glass-panel stat-card danger">
-                    <div class="stat-icon">🛡️</div>
-                    <div class="stat-label">오늘 차단된 위협</div>
-                    <div class="stat-value" id="blockedToday">0</div>
-                </div>
-                <div class="glass-panel stat-card">
-                    <div class="stat-icon">⏳</div>
-                    <div class="stat-label">대기중인 승인 요청</div>
-                    <div class="stat-value" id="pendingApprovals">0</div>
-                </div>
-                <div class="glass-panel stat-card">
-                    <div class="stat-icon">🌐</div>
-                    <div class="stat-label">총 관리 디바이스</div>
-                    <div class="stat-value" id="totalPcs">0</div>
-                </div>
-            </div>
-
-            <!-- Threat Logs -->
-            <section class="data-section fade-in-up delay-2">
-                <div class="section-header">
-                    <h2 class="section-title">⚠️ 최근 위협 및 보안 로그</h2>
-                    <button class="btn" onclick="fetchLogs()">⟳ 실시간 새로고침</button>
-                </div>
-                <div class="glass-panel" style="padding: 10px;">
-                    <div class="log-list" id="logList">
-                        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
-                            <div style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;">📡</div>
-                            로그 데이터를 수신 대기 중입니다...
-                        </div>
+            <!-- DASHBOARD TAB -->
+            <div id="tab-dashboard" class="data-section active">
+                <div class="stats-grid">
+                    <div class="glass-panel stat-card primary">
+                        <i data-lucide="monitor" class="stat-icon"></i>
+                        <div class="stat-label">온라인 에이전트</div>
+                        <div class="stat-value" id="onlinePcs">0</div>
+                    </div>
+                    <div class="glass-panel stat-card danger">
+                        <i data-lucide="shield-alert" class="stat-icon"></i>
+                        <div class="stat-label">오늘 차단된 위협</div>
+                        <div class="stat-value" id="blockedToday">0</div>
                     </div>
                 </div>
-            </section>
 
-            <!-- Active Devices -->
-            <section class="data-section fade-in-up delay-3">
                 <div class="section-header">
-                    <h2 class="section-title">🖥️ 활성 디바이스 현황</h2>
+                    <h2 class="section-title"><i data-lucide="alert-triangle" style="color: var(--danger)"></i> 최근 위협 및 보안 로그</h2>
+                    <button class="btn" onclick="fetchLogs()"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> 새로고침</button>
+                </div>
+                <div class="glass-panel" style="margin-bottom: 3rem;">
+                    <div id="logList">
+                        <div style="padding: 40px; text-align: center; color: var(--text-muted);">로그 데이터를 수신 대기 중입니다...</div>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="server"></i> 활성 디바이스 현황</h2>
                 </div>
                 <div class="glass-panel" style="overflow: hidden;">
                     <table class="custom-table">
                         <thead>
                             <tr>
                                 <th>디바이스명</th>
+                                <th>별명 (닉네임)</th>
                                 <th>MAC 어드레스</th>
                                 <th>내부 IP</th>
                                 <th>상태</th>
-                                <th>마지막 하트비트</th>
                             </tr>
                         </thead>
                         <tbody id="pcTableBody">
-                            <tr>
-                                <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
-                                    등록된 디바이스가 없습니다.
-                                </td>
-                            </tr>
+                            <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>
                         </tbody>
                     </table>
                 </div>
-            </section>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="tab-settings" class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="lock"></i> 관리자 보안 설정</h2>
+                </div>
+                <div class="glass-panel" style="padding: 2rem; max-width: 600px;">
+                    <div class="form-group">
+                        <label>관리자 마스터 비밀번호 (앱 종료/삭제 방어용)</label>
+                        <input type="password" id="adminPassword" class="form-control" value="oksooht2026">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">* 트레이 아이콘 종료, 정책 변경, 프로그램 무력화 시 요구되는 비밀번호입니다.</p>
+                    </div>
+                    <div class="form-group">
+                        <label>차단할 파일 확장자 (콤마로 구분)</label>
+                        <input type="text" id="blockedExts" class="form-control" value="exe, bat, cmd, ps1">
+                    </div>
+                    <div class="form-group">
+                        <label>유해 사이트 차단 목록 (콤마로 구분)</label>
+                        <input type="text" id="blockedSites" class="form-control" value="pornhub.com, ilbe.com, torrentwal.com">
+                    </div>
+                    <button class="btn primary" onclick="saveSettings()"><i data-lucide="save"></i> 정책 저장 및 배포</button>
+                    <div id="saveMsg" style="margin-top: 10px; color: var(--success); font-weight: 500; display: none;">✅ 서버에 저장되었습니다. 클라이언트에 30초 내로 반영됩니다.</div>
+                </div>
+            </div>
+
         </main>
     </div>
 
     <script>
+        lucide.createIcons(); // Initialize icons
         const API_BASE = 'https://oksooht-security-api.vercel.app/api';
 
-        function getSeverityClass(severity, type) {
-            if (severity === 'critical' || type === 'blocked' || type === 'file_blocked' || type === 'site_blocked') return 'badge-critical';
-            if (severity === 'warning') return 'badge-warning';
-            if (severity === 'info') return 'badge-info';
-            return 'badge-info';
-        }
-
-        async function fetchStats() {
-            try {
-                // To avoid 404 if /stats isn't fully robust, we can wrap this. 
-                // Currently /stats is implemented in server-api/api/stats.js
-                const res = await fetch(`${API_BASE}/stats`);
-                if (!res.ok) return;
-                const data = await res.json();
-                document.getElementById('onlinePcs').textContent = data.onlinePcs || 0;
-                document.getElementById('blockedToday').textContent = data.blockedToday || 0;
-                document.getElementById('pendingApprovals').textContent = data.pendingApprovals || 0;
-                document.getElementById('totalPcs').textContent = data.totalPcs || 0;
-            } catch (e) { console.error('Stats fetch error:', e); }
+        function switchTab(tabId) {
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.querySelectorAll('.data-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if (tabId === 'settings') loadSettings();
         }
 
         async function fetchLogs() {
@@ -497,33 +273,24 @@
                 if (!res.ok) return;
                 const data = await res.json();
                 const container = document.getElementById('logList');
-                
                 if (!data || data.length === 0) {
-                    container.innerHTML = `
-                        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
-                            <div style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;">✨</div>
-                            안전합니다. 기록된 위협이 없습니다.
-                        </div>`;
+                    container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);">기록된 위협이 없습니다.</div>';
                     return;
                 }
-
                 container.innerHTML = data.map(log => `
                     <div class="log-item">
-                        <div class="log-badge ${getSeverityClass(log.severity, log.event_type)}">
-                            ${log.event_type.replace('_', ' ')}
-                        </div>
+                        <div class="log-badge ${log.severity === 'critical' ? 'badge-critical' : 'badge-info'}">${log.event_type}</div>
                         <div class="log-content">
                             <div class="log-msg">${log.message}</div>
                             <div class="log-meta">
-                                <span>🖥️ ${log.hostname || 'Unknown PC'}</span>
-                                ${log.details && log.details.url ? `<span>🌐 ${log.details.url}</span>` : ''}
-                                ${log.details && log.details.file ? `<span>📁 ${log.details.file}</span>` : ''}
+                                <span><i data-lucide="monitor" style="width:14px;height:14px;"></i> ${log.hostname}</span>
                             </div>
                         </div>
                         <div class="log-time">${new Date(log.created_at).toLocaleString()}</div>
                     </div>
                 `).join('');
-            } catch (e) { console.error('Logs fetch error:', e); }
+                lucide.createIcons();
+            } catch (e) { console.error(e); }
         }
 
         async function fetchPCs() {
@@ -532,46 +299,50 @@
                 if (!res.ok) return;
                 const data = await res.json();
                 const container = document.getElementById('pcTableBody');
+                if (!data || data.length === 0) return;
                 
-                if (!data || data.length === 0) {
-                    container.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>';
-                    return;
-                }
-
                 container.innerHTML = data.map(pc => {
-                    // Check if online (last seen within 2 minutes)
-                    const lastSeen = new Date(pc.last_seen);
-                    const now = new Date();
-                    const diffMs = now - lastSeen;
-                    const isOnline = diffMs < 120000; // 2 mins
-                    
+                    const isOnline = (new Date() - new Date(pc.last_seen)) < 120000;
                     return `
                     <tr>
                         <td style="font-weight: 500;">${pc.hostname}</td>
-                        <td style="font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">${pc.mac_address}</td>
-                        <td style="font-family: 'JetBrains Mono', monospace;">${pc.ip_address || '-'}</td>
-                        <td>
-                            <span class="${isOnline ? 'tag-online' : 'tag-offline'}">
-                                ${isOnline ? 'Online' : 'Offline'}
-                            </span>
-                        </td>
-                        <td style="color: var(--text-muted); font-size: 0.85rem;">
-                            ${lastSeen.toLocaleString()}
-                        </td>
+                        <td style="color: var(--primary);">${pc.nickname || '-'}</td>
+                        <td style="color: var(--text-muted); font-family: monospace;">${pc.mac_address}</td>
+                        <td style="font-family: monospace;">${pc.ip_address || '-'}</td>
+                        <td style="color: ${isOnline ? 'var(--success)' : 'var(--text-muted)'}">${isOnline ? '● Online' : '○ Offline'}</td>
                     </tr>
                 `}).join('');
-            } catch (e) { console.error('PCs fetch error:', e); }
+            } catch (e) { console.error(e); }
         }
 
-        // Initialize
-        function updateAll() {
-            fetchStats();
-            fetchLogs();
-            fetchPCs();
+        async function loadSettings() {
+            try {
+                const res = await fetch(`${API_BASE}/settings`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data.admin_password) document.getElementById('adminPassword').value = data.admin_password;
+                if (data.blocked_extensions) document.getElementById('blockedExts').value = data.blocked_extensions.join(', ');
+                if (data.blocked_sites) document.getElementById('blockedSites').value = data.blocked_sites.join(', ');
+            } catch (e) { console.error(e); }
         }
 
-        updateAll();
-        setInterval(updateAll, 10000); // 10초마다 갱신
+        async function saveSettings() {
+            const pwd = document.getElementById('adminPassword').value;
+            const exts = document.getElementById('blockedExts').value.split(',').map(s=>s.trim());
+            const sites = document.getElementById('blockedSites').value.split(',').map(s=>s.trim());
+            
+            try {
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key: 'admin_password', value: pwd }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key: 'blocked_extensions', value: JSON.stringify(exts) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key: 'blocked_sites', value: JSON.stringify(sites) }) });
+                
+                document.getElementById('saveMsg').style.display = 'block';
+                setTimeout(() => document.getElementById('saveMsg').style.display = 'none', 3000);
+            } catch (e) { console.error(e); alert('저장 실패'); }
+        }
+
+        function updateAll() { fetchLogs(); fetchPCs(); }
+        updateAll(); setInterval(updateAll, 10000);
     </script>
 </body>
 </html>
