@@ -3,6 +3,7 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, dialog, Not
 const path = require('path');
 const Store = require('electron-store');
 const serverSync = require('./security/server-sync');
+const siteBlocker = require('./security/site-blocker');
 
 // --- 서버 동기화 상태 ---
 let heartbeatInterval = null;
@@ -327,10 +328,33 @@ app.whenReady().then(async () => {
       });
     }
 
-    // 30초마다 하트비트 전송 (온라인 상태 유지)
+    // 30초마다 하트비트 전송 및 정책 업데이트 (온라인 상태 유지)
     heartbeatInterval = setInterval(async () => {
       await serverSync.registerOrHeartbeat();
+      
+      try {
+        const policy = await serverSync.fetchPolicy();
+        if (policy) {
+          // 서버 정책에서 차단된 사이트 목록 가져오기
+          let sitesToBlock = policy.blockedSites || [];
+          // 기본 유해 사이트가 정책에 없다면 로컬 기본값 사용
+          if (sitesToBlock.length === 0) {
+            sitesToBlock = ['pornhub.com', 'ilbe.com', 'torrentwal.com'];
+          }
+          siteBlocker.updateBlockedSites(sitesToBlock);
+        }
+      } catch (e) {
+        console.error('[Main] 정책 업데이트 실패:', e.message);
+      }
+      
     }, 30 * 1000);
+    
+    // 앱 시작 시 한 번 즉시 정책 적용
+    const initialPolicy = await serverSync.fetchPolicy();
+    if (initialPolicy) {
+      siteBlocker.updateBlockedSites(initialPolicy.blockedSites || ['pornhub.com', 'ilbe.com', 'torrentwal.com']);
+    }
+
   } catch (err) {
     console.warn('[Main] 서버 연결 실패, 오프라인 모드로 실행:', err.message);
   }
@@ -348,6 +372,10 @@ app.on('before-quit', async () => {
   isQuitting = true;
   // 하트비트 중단
   if (heartbeatInterval) clearInterval(heartbeatInterval);
+  
+  // 앱 종료 시 hosts 파일 원상 복구 (차단 해제)
+  siteBlocker.updateBlockedSites([]);
+
   // 앱 종료 로그 전송
   try {
     await serverSync.sendLog('app_stop', 'info', 'JBMSOFT Security 앱 종료', {});

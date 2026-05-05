@@ -4,253 +4,574 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OKSOOHT Security Admin 🛡️</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.5);
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --red: #ef4444;
-            --green: #10b981;
-            --yellow: #f59e0b;
+            --bg-base: #050505;
+            --bg-surface: rgba(15, 15, 20, 0.6);
+            --bg-surface-hover: rgba(25, 25, 35, 0.8);
+            --primary: #00f0ff;
+            --primary-glow: rgba(0, 240, 255, 0.4);
+            --secondary: #7000ff;
+            --secondary-glow: rgba(112, 0, 255, 0.4);
+            --text-main: #ffffff;
+            --text-muted: #8b8b99;
+            --danger: #ff2a55;
+            --danger-glow: rgba(255, 42, 85, 0.4);
+            --success: #00ff88;
+            --success-glow: rgba(0, 255, 136, 0.4);
+            --border-light: rgba(255, 255, 255, 0.08);
+            --glass-blur: blur(20px);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-dark);
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
             color: var(--text-main);
             overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
             min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 15% 50%, var(--secondary-glow) 0%, transparent 40%),
+                radial-gradient(circle at 85% 30%, var(--primary-glow) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
         }
 
         /* Layout */
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
         .sidebar {
-            position: fixed;
-            left: 0; top: 0; bottom: 0; width: 260px;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            width: 280px;
             padding: 2rem;
-            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            border-right: 1px solid var(--border-light);
+            background: rgba(5, 5, 5, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 10;
         }
 
         .main-content {
-            margin-left: 260px;
-            padding: 2rem;
+            flex: 1;
+            padding: 2.5rem 3rem;
+            overflow-y: auto;
         }
 
         /* Branding */
-        .logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 3rem;
+        .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
-            color: var(--accent);
+            gap: 12px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--primary), #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-icon {
+            font-size: 1.8rem;
+            filter: drop-shadow(0 0 8px var(--primary-glow));
         }
 
         /* Navigation */
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .nav-item {
-            padding: 12px 16px;
-            border-radius: 12px;
+            padding: 14px 18px;
+            border-radius: 16px;
             color: var(--text-muted);
             text-decoration: none;
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-            transition: all 0.3s;
+            gap: 14px;
+            font-weight: 500;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
+            border: 1px solid transparent;
         }
 
-        .nav-item:hover, .nav-item.active {
-            background: rgba(59, 130, 246, 0.1);
+        .nav-item:hover {
             color: var(--text-main);
-            box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateX(5px);
         }
 
-        /* Stats Cards */
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(0, 240, 255, 0.1), transparent);
+            color: var(--primary);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: inset 4px 0 0 var(--primary);
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-title {
+            font-size: 2.2rem;
+            font-weight: 600;
+            letter-spacing: -1px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 100px;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            color: var(--success);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        /* Stats Grid */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
         }
 
         .stat-card {
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 20px;
-            padding: 1.5rem;
+            padding: 1.8rem;
             position: relative;
             overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .stat-card::after {
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        .stat-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 4px;
-            background: var(--accent);
-            opacity: 0.5;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+            pointer-events: none;
         }
 
-        .stat-value { font-size: 2rem; font-weight: 700; margin-top: 10px; }
-        .stat-label { color: var(--text-muted); font-size: 0.9rem; }
-
-        /* Tables & Lists */
-        .data-card {
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 24px;
-            padding: 20px;
-            margin-bottom: 2rem;
+        .stat-icon {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 5rem;
+            opacity: 0.05;
+            transform: rotate(15deg);
         }
 
-        .table-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        table {
-            width: 100%; border-collapse: collapse; text-align: left;
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, #a0a0a0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        th { color: var(--text-muted); font-size: 0.85rem; padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
-        td { padding: 16px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.9rem; }
-
-        .status-badge {
-            padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+        .stat-card.danger .stat-value {
+            background: linear-gradient(to right, var(--danger), #ff8a9f);
+            -webkit-background-clip: text;
         }
-        .online { background: rgba(16, 185, 129, 0.1); color: var(--green); }
-        .offline { background: rgba(148, 163, 184, 0.1); color: var(--text-muted); }
+
+        .stat-card.primary .stat-value {
+            background: linear-gradient(to right, var(--primary), #8affff);
+            -webkit-background-clip: text;
+        }
+
+        /* Data Sections */
+        .data-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Logs List */
+        .log-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .log-item {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 16px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 16px;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .log-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: var(--border-light);
+        }
+
+        .log-badge {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            width: 100px;
+            text-align: center;
+        }
+
+        .badge-blocked, .badge-critical { background: rgba(255, 42, 85, 0.15); color: var(--danger); border: 1px solid rgba(255, 42, 85, 0.3); }
+        .badge-allowed, .badge-info { background: rgba(0, 240, 255, 0.15); color: var(--primary); border: 1px solid rgba(0, 240, 255, 0.3); }
+        .badge-warning { background: rgba(112, 0, 255, 0.15); color: #b070ff; border: 1px solid rgba(112, 0, 255, 0.3); }
+
+        .log-content { flex: 1; }
+        .log-msg { font-weight: 500; margin-bottom: 4px; font-size: 1.05rem; }
+        .log-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 15px; }
+        .log-time { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); }
+
+        /* Tables */
+        .custom-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .custom-table th {
+            text-align: left;
+            padding: 16px 20px;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .custom-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+            font-size: 0.95rem;
+        }
+
+        .custom-table tr:last-child td { border-bottom: none; }
+        .custom-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        .tag-online { color: var(--success); display: flex; align-items: center; gap: 6px; }
+        .tag-online::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+        
+        .tag-offline { color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+        .tag-offline::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
 
         /* Animations */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate { animation: fadeIn 0.5s ease forwards; }
-
-        .log-entry {
-            display: flex; align-items: center; gap: 15px; padding: 12px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(0, 255, 136, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
         }
-        .log-type { width: 80px; font-weight: 600; font-size: 0.8rem; }
-        .blocked { color: var(--red); }
-        .allowed { color: var(--green); }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="logo">🛡️ OKSOOHT <span>Security</span></div>
-        <div class="nav-item active">📊 대시보드</div>
-        <div class="nav-item">🖥️ PC 관리</div>
-        <div class="nav-item">📋 보안 로그</div>
-        <div class="nav-item">✅ 승인 관리</div>
-        <div class="nav-item">⚙️ 정책 설정</div>
-    </div>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="brand-icon">🛡️</span> OKSOOHT
+            </div>
+            <nav class="nav-menu">
+                <a class="nav-item active">
+                    <span style="font-size: 1.2rem;">⚡</span> 관제 대시보드
+                </a>
+                <a class="nav-item">
+                    <span style="font-size: 1.2rem;">💻</span> 디바이스 관리
+                </a>
+                <a class="nav-item">
+                    <span style="font-size: 1.2rem;">📋</span> 통합 보안 로그
+                </a>
+                <a class="nav-item">
+                    <span style="font-size: 1.2rem;">✅</span> 결재 / 승인함
+                </a>
+                <a class="nav-item">
+                    <span style="font-size: 1.2rem;">⚙️</span> 글로벌 정책 설정
+                </a>
+            </nav>
+        </aside>
 
-    <div class="main-content">
-        <header style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
-            <h1 class="animate">실시간 보안 관제</h1>
-            <div id="connectionStatus" style="font-size: 0.9rem; color: var(--green);">● 서버 연결됨</div>
-        </header>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="header fade-in-up">
+                <div>
+                    <h1 class="page-title">실시간 보안 센터</h1>
+                    <p style="color: var(--text-muted); margin-top: 5px;">전사적 보안 현황을 실시간으로 모니터링합니다.</p>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    서버 연결됨 (Vercel Edge)
+                </div>
+            </header>
 
-        <div class="stats-grid animate">
-            <div class="stat-card">
-                <div class="stat-label">온라인 PC</div>
-                <div class="stat-value" id="onlinePcs">0</div>
+            <!-- Stats -->
+            <div class="stats-grid fade-in-up delay-1">
+                <div class="glass-panel stat-card primary">
+                    <div class="stat-icon">💻</div>
+                    <div class="stat-label">온라인 에이전트</div>
+                    <div class="stat-value" id="onlinePcs">0</div>
+                </div>
+                <div class="glass-panel stat-card danger">
+                    <div class="stat-icon">🛡️</div>
+                    <div class="stat-label">오늘 차단된 위협</div>
+                    <div class="stat-value" id="blockedToday">0</div>
+                </div>
+                <div class="glass-panel stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-label">대기중인 승인 요청</div>
+                    <div class="stat-value" id="pendingApprovals">0</div>
+                </div>
+                <div class="glass-panel stat-card">
+                    <div class="stat-icon">🌐</div>
+                    <div class="stat-label">총 관리 디바이스</div>
+                    <div class="stat-value" id="totalPcs">0</div>
+                </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">오늘 차단 이벤트</div>
-                <div class="stat-value" id="blockedToday" style="color: var(--red);">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">대기 중인 승인</div>
-                <div class="stat-value" id="pendingApprovals">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">총 등록 PC</div>
-                <div class="stat-value" id="totalPcs">0</div>
-            </div>
-        </div>
 
-        <div class="data-card animate" style="animation-delay: 0.1s;">
-            <div class="table-header">
-                <h2>실시간 보안 로그</h2>
-                <button style="background: var(--accent); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer;">새로고침</button>
-            </div>
-            <div id="logList">
-                <div class="empty-state" style="text-align: center; padding: 40px; color: var(--text-muted);">로그 데이터를 불러오는 중...</div>
-            </div>
-        </div>
+            <!-- Threat Logs -->
+            <section class="data-section fade-in-up delay-2">
+                <div class="section-header">
+                    <h2 class="section-title">⚠️ 최근 위협 및 보안 로그</h2>
+                    <button class="btn" onclick="fetchLogs()">⟳ 실시간 새로고침</button>
+                </div>
+                <div class="glass-panel" style="padding: 10px;">
+                    <div class="log-list" id="logList">
+                        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                            <div style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;">📡</div>
+                            로그 데이터를 수신 대기 중입니다...
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-        <div class="data-card animate" style="animation-delay: 0.2s;">
-            <div class="table-header">
-                <h2>PC 상태 목록</h2>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>호스트네임</th>
-                        <th>MAC 주소</th>
-                        <th>IP 주소</th>
-                        <th>상태</th>
-                        <th>마지막 접속</th>
-                    </tr>
-                </thead>
-                <tbody id="pcTableBody">
-                    <!-- 데이터가 여기에 동적으로 추가됩니다 -->
-                </tbody>
-            </table>
-        </div>
+            <!-- Active Devices -->
+            <section class="data-section fade-in-up delay-3">
+                <div class="section-header">
+                    <h2 class="section-title">🖥️ 활성 디바이스 현황</h2>
+                </div>
+                <div class="glass-panel" style="overflow: hidden;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>디바이스명</th>
+                                <th>MAC 어드레스</th>
+                                <th>내부 IP</th>
+                                <th>상태</th>
+                                <th>마지막 하트비트</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pcTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                    등록된 디바이스가 없습니다.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
 
     <script>
-                const API_BASE = 'https://oksooht-security-api.vercel.app/api';
+        const API_BASE = 'https://oksooht-security-api.vercel.app/api';
+
+        function getSeverityClass(severity, type) {
+            if (severity === 'critical' || type === 'blocked' || type === 'file_blocked' || type === 'site_blocked') return 'badge-critical';
+            if (severity === 'warning') return 'badge-warning';
+            if (severity === 'info') return 'badge-info';
+            return 'badge-info';
+        }
 
         async function fetchStats() {
             try {
+                // To avoid 404 if /stats isn't fully robust, we can wrap this. 
+                // Currently /stats is implemented in server-api/api/stats.js
                 const res = await fetch(`${API_BASE}/stats`);
+                if (!res.ok) return;
                 const data = await res.json();
-                document.getElementById('onlinePcs').textContent = data.onlinePcs;
-                document.getElementById('blockedToday').textContent = data.blockedToday;
-                document.getElementById('pendingApprovals').textContent = data.pendingApprovals;
-                document.getElementById('totalPcs').textContent = data.totalPcs;
-            } catch (e) { console.error(e); }
+                document.getElementById('onlinePcs').textContent = data.onlinePcs || 0;
+                document.getElementById('blockedToday').textContent = data.blockedToday || 0;
+                document.getElementById('pendingApprovals').textContent = data.pendingApprovals || 0;
+                document.getElementById('totalPcs').textContent = data.totalPcs || 0;
+            } catch (e) { console.error('Stats fetch error:', e); }
         }
 
         async function fetchLogs() {
             try {
-                const res = await fetch(`${API_BASE}/logs?limit=10`);
+                const res = await fetch(`${API_BASE}/logs?limit=5`);
+                if (!res.ok) return;
                 const data = await res.json();
                 const container = document.getElementById('logList');
-                if (data.length === 0) {
-                    container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">표시할 로그가 없습니다.</div>';
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                            <div style="font-size: 2rem; margin-bottom: 10px; opacity: 0.5;">✨</div>
+                            안전합니다. 기록된 위협이 없습니다.
+                        </div>`;
                     return;
                 }
+
                 container.innerHTML = data.map(log => `
-                    <div class="log-entry">
-                        <div class="log-type ${log.log_type}">${log.log_type.toUpperCase()}</div>
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600;">${log.message}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">${log.pc_name} (${log.ip_address})</div>
+                    <div class="log-item">
+                        <div class="log-badge ${getSeverityClass(log.severity, log.event_type)}">
+                            ${log.event_type.replace('_', ' ')}
                         </div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono';">${new Date(log.timestamp).toLocaleString()}</div>
+                        <div class="log-content">
+                            <div class="log-msg">${log.message}</div>
+                            <div class="log-meta">
+                                <span>🖥️ ${log.hostname || 'Unknown PC'}</span>
+                                ${log.details && log.details.url ? `<span>🌐 ${log.details.url}</span>` : ''}
+                                ${log.details && log.details.file ? `<span>📁 ${log.details.file}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="log-time">${new Date(log.created_at).toLocaleString()}</div>
                     </div>
                 `).join('');
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error('Logs fetch error:', e); }
         }
 
-        // 초기화
-        setInterval(() => {
+        async function fetchPCs() {
+            try {
+                const res = await fetch(`${API_BASE}/pcs`);
+                if (!res.ok) return;
+                const data = await res.json();
+                const container = document.getElementById('pcTableBody');
+                
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>';
+                    return;
+                }
+
+                container.innerHTML = data.map(pc => {
+                    // Check if online (last seen within 2 minutes)
+                    const lastSeen = new Date(pc.last_seen);
+                    const now = new Date();
+                    const diffMs = now - lastSeen;
+                    const isOnline = diffMs < 120000; // 2 mins
+                    
+                    return `
+                    <tr>
+                        <td style="font-weight: 500;">${pc.hostname}</td>
+                        <td style="font-family: 'JetBrains Mono', monospace; color: var(--text-muted);">${pc.mac_address}</td>
+                        <td style="font-family: 'JetBrains Mono', monospace;">${pc.ip_address || '-'}</td>
+                        <td>
+                            <span class="${isOnline ? 'tag-online' : 'tag-offline'}">
+                                ${isOnline ? 'Online' : 'Offline'}
+                            </span>
+                        </td>
+                        <td style="color: var(--text-muted); font-size: 0.85rem;">
+                            ${lastSeen.toLocaleString()}
+                        </td>
+                    </tr>
+                `}).join('');
+            } catch (e) { console.error('PCs fetch error:', e); }
+        }
+
+        // Initialize
+        function updateAll() {
             fetchStats();
             fetchLogs();
-        }, 5000);
-        fetchStats();
-        fetchLogs();
+            fetchPCs();
+        }
+
+        updateAll();
+        setInterval(updateAll, 10000); // 10초마다 갱신
     </script>
 </body>
 </html>
