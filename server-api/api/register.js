@@ -18,7 +18,30 @@ module.exports = async (req, res) => {
   const { hostname, mac_address, ip_address, username, dept } = req.body;
 
   try {
-    // 1. PC 등록 또는 업데이트 (Upsert)
+    // 1. 기존 기기인지 확인
+    const { data: existingPc } = await supabase
+      .from('pcs')
+      .select('id')
+      .eq('mac_address', mac_address)
+      .single();
+
+    if (!existingPc) {
+      // 새로운 기기 등록 시도이므로, 라이선스 한도 확인
+      const { data: pcsData } = await supabase.from('pcs').select('id', { count: 'exact' });
+      const currentCount = pcsData ? pcsData.length : 0;
+
+      const { data: setData } = await supabase.from('settings').select('value').eq('key', 'license_limit').single();
+      let limit = 10; // 기본값
+      if (setData && setData.value) {
+          try { limit = parseInt(setData.value, 10); } catch(e) {}
+      }
+
+      if (currentCount >= limit) {
+          return res.status(403).json({ error: 'LICENSE_LIMIT_EXCEEDED', message: '라이선스 수량이 초과되었습니다. 관리자에게 문의하세요.' });
+      }
+    }
+
+    // 2. PC 등록 또는 업데이트 (Upsert)
     const { data, error } = await supabase
       .from('pcs')
       .upsert({

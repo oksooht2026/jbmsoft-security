@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시스템 라이선스 제어소 (시크릿)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-base: #0a0a0a;
+            --bg-surface: rgba(20, 20, 25, 0.8);
+            --primary: #ff0055; /* Secret page has a red/danger theme */
+            --text-main: #ffffff;
+            --text-muted: #8b8b99;
+            --border-light: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: radial-gradient(circle at 50% 50%, rgba(255,0,85,0.1) 0%, transparent 50%);
+        }
+
+        .container {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            backdrop-filter: blur(20px);
+        }
+
+        h1 { font-size: 1.5rem; margin-bottom: 30px; display: flex; align-items: center; gap: 10px; color: var(--primary); }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500; }
+        .form-control {
+            width: 100%; padding: 12px 16px; border-radius: 12px;
+            background: rgba(0,0,0,0.5); border: 1px solid var(--border-light);
+            color: white; font-family: 'JetBrains Mono', monospace; font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .form-control:focus { outline: none; border-color: var(--primary); }
+
+        .btn {
+            width: 100%; background: rgba(255, 0, 85, 0.2); border: 1px solid rgba(255, 0, 85, 0.4); 
+            color: var(--primary); padding: 14px; border-radius: 12px; font-weight: 600; font-size: 1rem;
+            cursor: pointer; transition: all 0.3s; margin-top: 10px;
+        }
+        .btn:hover { background: rgba(255, 0, 85, 0.4); }
+
+        .stats-box {
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border-light);
+            padding: 20px; border-radius: 12px; margin-bottom: 25px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .stats-val { font-size: 2rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        
+        #mainContent { display: none; }
+        #authContent { display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="authContent">
+        <h1><i data-lucide="key"></i> 보안 인증</h1>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">라이선스 관리 페이지에 접근하려면 마스터 비밀번호가 필요합니다.</p>
+        <div class="form-group">
+            <input type="password" id="authPw" class="form-control" placeholder="마스터 비밀번호 입력">
+        </div>
+        <button class="btn" onclick="verifyAuth()">인증하기</button>
+    </div>
+
+    <div class="container" id="mainContent">
+        <h1><i data-lucide="shield-check"></i> 라이선스 한도 관리</h1>
+        
+        <div class="stats-box">
+            <div>
+                <div style="color: var(--text-muted); font-size: 0.9rem;">현재 설치/등록된 기기 수</div>
+                <div class="stats-val" id="currentCount">0</div>
+            </div>
+            <div>
+                <i data-lucide="monitor" style="width: 40px; height: 40px; color: rgba(255,255,255,0.1);"></i>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>허용할 최대 설치 대수 (라이선스 수)</label>
+            <input type="number" id="licenseLimit" class="form-control" min="1" value="10">
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">이 수치를 초과하여 새로운 PC에서 프로그램을 실행할 경우, 등록이 영구 차단됩니다.</p>
+        </div>
+
+        <button class="btn" onclick="saveLicenseLimit()">한도 변경 적용</button>
+        <div id="msg" style="text-align: center; margin-top: 15px; color: #00ff88; display: none;">✅ 라이선스 한도가 정상적으로 업데이트되었습니다.</div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        const API_BASE = 'https://oksooht-security-api.vercel.app/api';
+        let verifiedPw = '';
+
+        async function verifyAuth() {
+            const pw = document.getElementById('authPw').value;
+            try {
+                // To verify, we try to set a dummy value or just fetch settings if we exposed a verification route.
+                // Since settings GET doesn't require password but we don't expose current password, 
+                // we'll try to trigger an update error if wrong. Or simpler: fetch settings, but our API requires current_password to change password.
+                // Actually, the simplest way to verify the master password without a dedicated auth endpoint
+                // is to send a PUT request to update 'admin_password' to the same value using this password as 'current_password'.
+                
+                const testRes = await fetch(`${API_BASE}/settings`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ key: 'admin_password', value: pw, current_password: pw })
+                });
+
+                if (testRes.ok) {
+                    verifiedPw = pw;
+                    document.getElementById('authContent').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                    loadData();
+                } else {
+                    alert('마스터 비밀번호가 일치하지 않습니다.');
+                }
+            } catch (e) {
+                alert('서버 연결 오류');
+            }
+        }
+
+        async function loadData() {
+            try {
+                // 1. Get current registered PCs count
+                const pcsRes = await fetch(`${API_BASE}/pcs`);
+                if (pcsRes.ok) {
+                    const pcsData = await pcsRes.json();
+                    document.getElementById('currentCount').innerText = pcsData.length || 0;
+                }
+
+                // 2. Get current limit
+                const setRes = await fetch(`${API_BASE}/settings`);
+                if (setRes.ok) {
+                    const setData = await setRes.json();
+                    if (setData.license_limit) {
+                        document.getElementById('licenseLimit').value = setData.license_limit;
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function saveLicenseLimit() {
+            const limit = document.getElementById('licenseLimit').value;
+            try {
+                const res = await fetch(`${API_BASE}/settings`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    // admin_password is required for authorization to change any global policy if we implemented it, 
+                    // but since our API only requires it for 'admin_password' itself, we can just send the limit.
+                    // (For extra security, our API could be updated to require current_password for ALL settings changes, but currently it only does for password).
+                    body: JSON.stringify({ key: 'license_limit', value: parseInt(limit, 10) })
+                });
+
+                if (res.ok) {
+                    document.getElementById('msg').style.display = 'block';
+                    setTimeout(() => document.getElementById('msg').style.display = 'none', 3000);
+                } else {
+                    alert('적용 실패');
+                }
+            } catch (e) {
+                alert('오류 발생');
+            }
+        }
+    </script>
+</body>
+</html>

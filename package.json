@@ -1,11 +1,12 @@
 {
-  "name": "jbmsoft-security",
+  "name": "oksoo-security",
   "version": "1.0.0",
-  "description": "JBMSOFT 사내 보안 프로그램",
+  "description": "옥수하이테크 보안 솔루션",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "build": "electron-builder --win"
   },
   "keywords": [
     "security",
@@ -15,7 +16,8 @@
   "author": "JBMSOFT",
   "license": "UNLICENSED",
   "devDependencies": {
-    "electron": "^28.0.0"
+    "electron": "^28.0.0",
+    "electron-builder": "^26.8.1"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -25,14 +27,16 @@
     "winreg": "^1.2.5"
   },
   "build": {
-    "appId": "com.jbmsoft.security",
-    "productName": "JBMSOFT Security",
+    "appId": "com.oksoohitech.security",
+    "productName": "옥수하이테크 보안솔루션",
+    "copyright": "Copyright © 2026 Oksoo Hi-Tech",
     "win": {
       "target": "nsis"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
+      "artifactName": "OksooSecurity_Setup.${ext}",
       "include": "build/installer.nsh"
     }
   }

@@ -1,4 +1,4 @@
-// JBMSOFT Security - Main Process
+// 옥수하이테크 보안솔루션 - Main Process
 const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, dialog, Notification } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
@@ -90,7 +90,7 @@ function createMainWindow() {
       mainWindow.hide();
       if (Notification.isSupported()) {
         new Notification({
-          title: 'JBMSOFT Security',
+          title: '옥수하이테크 보안솔루션',
           body: '보안 프로그램이 트레이에서 계속 실행 중입니다.',
           icon: path.join(__dirname, 'src', 'assets', 'icons', 'tray-active.png')
         }).show();
@@ -115,7 +115,7 @@ function createTray() {
   }
 
   tray = new Tray(icon);
-  tray.setToolTip('JBMSOFT Security - 보안 활성화 중');
+  tray.setToolTip('옥수하이테크 보안솔루션 - 보안 활성화 중');
 
   updateTrayMenu();
 
@@ -130,7 +130,7 @@ function updateTrayMenu() {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: isKo ? 'JBMSOFT Security' : 'JBMSOFT Security',
+      label: isKo ? '옥수하이테크 보안솔루션' : '옥수하이테크 보안솔루션',
       enabled: false
     },
     { type: 'separator' },
@@ -298,7 +298,7 @@ ipcMain.handle('add-approval-request', (event, request) => {
     status: 'pending'
   });
   store.set('approvalRequests', requests);
-  if (tray) tray.setToolTip('JBMSOFT Security - ⚠️ 승인 요청 대기 중');
+  if (tray) tray.setToolTip('옥수하이테크 보안솔루션 - ⚠️ 승인 요청 대기 중');
   return true;
 });
 
@@ -313,8 +313,8 @@ ipcMain.handle('handle-approval', (event, id, approved) => {
   const pending = requests.filter(r => r.status === 'pending').length;
   if (tray) {
     tray.setToolTip(pending > 0
-      ? `JBMSOFT Security - ⚠️ 승인 요청 ${pending}건 대기 중`
-      : 'JBMSOFT Security - 보안 활성화 중'
+      ? `옥수하이테크 보안솔루션 - ⚠️ 승인 요청 ${pending}건 대기 중`
+      : '옥수하이테크 보안솔루션 - 보안 활성화 중'
     );
   }
   return true;
@@ -355,11 +355,22 @@ app.whenReady().then(async () => {
 
   // 서버에 PC 등록 및 하트비트 시작
   try {
-    pcId = await serverSync.registerOrHeartbeat();
+    try {
+        pcId = await serverSync.registerOrHeartbeat();
+    } catch (regErr) {
+        if (regErr.message === 'LICENSE_LIMIT_EXCEEDED') {
+            dialog.showErrorBox('옥수하이테크 보안솔루션 - 라이선스 초과', 
+                '라이선스 한도가 초과되어 새 기기를 등록할 수 없습니다.\n본사에 문의하여 한도를 증설해주세요.');
+            app.quit();
+            return;
+        }
+        throw regErr;
+    }
+    
     if (pcId) {
       console.log('[Main] 서버 등록 완료, PC ID:', pcId);
       // 앱 시작 이벤트 로그 전송
-      await serverSync.sendLog('app_start', 'info', 'JBMSOFT Security 앱 시작', {
+      await serverSync.sendLog('app_start', 'info', '옥수하이테크 보안솔루션 앱 시작', {
         hostname: require('os').hostname(),
         user: require('os').userInfo().username
       });
@@ -397,7 +408,12 @@ app.whenReady().then(async () => {
     }
 
   } catch (err) {
-    console.warn('[Main] 서버 연결 실패, 오프라인 모드로 실행:', err.message);
+    if (err.message === 'LICENSE_LIMIT_EXCEEDED') {
+        dialog.showErrorBox('라이선스 초과', '라이선스 수량이 초과되어 보호를 시작할 수 없습니다.');
+        app.quit();
+    } else {
+        console.warn('[Main] 서버 연결 실패, 오프라인 모드로 실행:', err.message);
+    }
   }
 
   app.on('activate', () => {

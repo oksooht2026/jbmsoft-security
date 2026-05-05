@@ -97,11 +97,15 @@ async function registerOrHeartbeat() {
     if (result.status === 200 || result.status === 201) {
       const pc = result.data;
       console.log(`[ServerSync] PC 등록/하트비트 성공: ${pc.id || 'ok'}`);
-      return pc.id || null;
+      return pc.id || pc.pc?.id || null;
+    }
+    if (result.status === 403 && result.data && result.data.error === 'LICENSE_LIMIT_EXCEEDED') {
+        throw new Error('LICENSE_LIMIT_EXCEEDED');
     }
     console.warn('[ServerSync] 등록 응답:', result.status, result.data);
     return null;
   } catch (err) {
+    if (err.message === 'LICENSE_LIMIT_EXCEEDED') throw err;
     console.error('[ServerSync] 서버 연결 실패 (오프라인 모드):', err.message);
     return null;
   }
