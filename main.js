@@ -42,6 +42,24 @@ let mainWindow = null;
 let tray = null;
 let isQuitting = false;
 
+// --- 단일 인스턴스 (중복 실행 방지) ---
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+  process.exit(0);
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // 두 번째 인스턴스가 실행되면 기존 창을 띄우고 포커스
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+}
+
+
 // --- 스플래시 창 생성 ---
 function createSplashWindow() {
   splashWindow = new BrowserWindow({
