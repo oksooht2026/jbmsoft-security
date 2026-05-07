@@ -1,4 +1,4 @@
-﻿// 옥수하이테크 보안솔루션 - Main Process
+// 옥수하이테크 보안솔루션 - Main Process
 const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, dialog, Notification } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
@@ -393,6 +393,10 @@ app.whenReady().then(async () => {
             sitesToBlock = ['pornhub.com', 'ilbe.com', 'torrentwal.com'];
           }
           siteBlocker.updateBlockedSites(sitesToBlock);
+
+          if (policy.admin_password) {
+              store.set('adminPassword', policy.admin_password);
+          }
         }
       } catch (e) {
         console.error('[Main] 정책 업데이트 실패:', e.message);
@@ -405,6 +409,9 @@ app.whenReady().then(async () => {
     if (initialPolicy) {
       osEngine.updateEnginePolicy(initialPolicy);
       siteBlocker.updateBlockedSites(initialPolicy.blockedSites || ['pornhub.com', 'ilbe.com', 'torrentwal.com']);
+      if (initialPolicy.admin_password) {
+          store.set('adminPassword', initialPolicy.admin_password);
+      }
     }
 
   } catch (err) {

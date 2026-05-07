@@ -859,7 +859,12 @@ function setupIpcListeners() {
 
 async function confirmAuth() {
   const pw = document.getElementById('authPwInput')?.value || '';
-  const stored = allConfig.adminPassword;
+  let stored = allConfig.adminPassword;
+  
+  if (window.electronAPI) {
+      stored = await window.electronAPI.getStore('adminPassword') || stored;
+  }
+  
   if (!stored) {
     showToast(currentLang === 'ko' ? '먼저 비밀번호를 설정하세요' : 'Please set a password first', 'error');
     return;
