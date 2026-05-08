@@ -324,6 +324,10 @@
     <script>
         lucide.createIcons(); // Initialize icons
         const API_BASE = 'https://oksooht-security-api.vercel.app/api';
+        const HEADERS = {
+            'Content-Type': 'application/json',
+            'x-api-key': 'oksooht-security-2026'
+        };
 
         function switchTab(tabId) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -336,7 +340,7 @@
 
         async function fetchLogs() {
             try {
-                const res = await fetch(`${API_BASE}/logs?limit=5`);
+                const res = await fetch(`${API_BASE}/logs?limit=5`, { headers: HEADERS });
                 if (!res.ok) return;
                 const data = await res.json();
                 const container = document.getElementById('logList');
@@ -362,7 +366,7 @@
 
         async function fetchPCs() {
             try {
-                const res = await fetch(`${API_BASE}/pcs`);
+                const res = await fetch(`${API_BASE}/pcs`, { headers: HEADERS });
                 if (!res.ok) return;
                 const data = await res.json();
                 const container = document.getElementById('pcTableBody');
@@ -421,7 +425,7 @@
             try {
                 const res = await fetch(`${API_BASE}/approvals?id=${id}`, {
                     method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: HEADERS,
                     body: JSON.stringify({ approved })
                 });
                 if (res.ok) {
@@ -460,7 +464,7 @@
 
         async function loadSettings() {
             try {
-                const res = await fetch(`${API_BASE}/settings`);
+                const res = await fetch(`${API_BASE}/settings`, { headers: HEADERS });
                 if (!res.ok) return;
                 const data = await res.json();
                 
@@ -497,7 +501,7 @@
                 if (newPwd) {
                     const pwdRes = await fetch(`${API_BASE}/settings`, { 
                         method: 'PUT', 
-                        headers: {'Content-Type': 'application/json'}, 
+                        headers: HEADERS, 
                         body: JSON.stringify({ key: 'admin_password', value: newPwd, current_password: currPwd }) 
                     });
                     if (!pwdRes.ok) {
@@ -507,8 +511,8 @@
                     }
                 }
                 
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key: 'blocked_extensions', value: JSON.stringify(exts) }) });
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ key: 'blocked_sites', value: JSON.stringify(sites) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'blocked_extensions', value: JSON.stringify(exts) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'blocked_sites', value: JSON.stringify(sites) }) });
                 
                 document.getElementById('currentPassword').value = '';
                 document.getElementById('adminPassword').value = '';
