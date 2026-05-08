@@ -152,6 +152,23 @@
 
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Tag UI styles */
+        .tag-container {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+            padding: 10px; border: 1px solid var(--border-light); border-radius: 8px;
+            background: rgba(0,0,0,0.3); min-height: 50px;
+        }
+        .tag-item {
+            background: rgba(255, 0, 85, 0.2); border: 1px solid rgba(255, 0, 85, 0.4);
+            color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .tag-item span { cursor: pointer; color: var(--danger); font-weight: bold; }
+        .tag-item span:hover { color: #ff4444; }
+        .input-group { display: flex; gap: 8px; }
+        .input-group .form-control { flex: 1; }
+        .input-group button { padding: 0 15px; border-radius: 8px; background: rgba(0,255,136,0.2); border: 1px solid rgba(0,255,136,0.4); color: #00ff88; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -275,15 +292,28 @@
                         <input type="password" id="adminPasswordConfirm" class="form-control" placeholder="새 비밀번호 재입력">
                         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">* 트레이 아이콘 종료, 정책 변경, 프로그램 무력화 시 요구되는 글로벌 비밀번호입니다.</p>
                     </div>
-                    <div class="form-group">
-                        <label>차단할 파일 확장자 (콤마로 구분)</label>
-                        <input type="text" id="blockedExts" class="form-control" value="exe, bat, cmd, ps1">
+                    <div class="form-group" style="margin-top: 30px;">
+                        <label>차단할 파일 확장자 <span style="font-size: 0.8rem; color: var(--text-muted);">(문서, 캐드 등 사내 보안 필요 확장자)</span></label>
+                        <div class="input-group">
+                            <input type="text" id="extInput" class="form-control" placeholder="예: exe, dwg, pdf" onkeypress="if(event.key==='Enter') addExt()">
+                            <button onclick="addExt()">추가</button>
+                        </div>
+                        <div class="tag-container" id="extTags"></div>
                     </div>
-                    <div class="form-group">
-                        <label>유해 사이트 차단 목록 (콤마로 구분)</label>
-                        <input type="text" id="blockedSites" class="form-control" value="pornhub.com, ilbe.com, torrentwal.com">
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>추가 유해 사이트 차단 목록</label>
+                        <div style="background: rgba(255,0,85,0.1); border-left: 3px solid var(--primary); padding: 10px; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted);">
+                            <i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle;"></i> 
+                            기본적으로 앱 내부에 탑재된 <strong>약 15,000개의 글로벌 유해 사이트(도박, 멀웨어 등)</strong>가 자동 차단 중입니다.<br>
+                            이곳에는 기본 데이터베이스 외에 회사에서 자체적으로 추가 차단할 사이트만 등록해 주세요.
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="siteInput" class="form-control" placeholder="예: facebook.com" onkeypress="if(event.key==='Enter') addSite()">
+                            <button onclick="addSite()">추가</button>
+                        </div>
+                        <div class="tag-container" id="siteTags"></div>
                     </div>
-                    <button class="btn primary" onclick="saveSettings()"><i data-lucide="save"></i> 정책 저장 및 배포</button>
+                    <button class="btn primary" style="margin-top: 20px;" onclick="saveSettings()"><i data-lucide="save"></i> 정책 저장 및 배포</button>
                     <div id="saveMsg" style="margin-top: 10px; color: var(--success); font-weight: 500; display: none;">✅ 서버에 저장되었습니다. 클라이언트에 30초 내로 반영됩니다.</div>
                 </div>
             </div>
@@ -402,14 +432,45 @@
             } catch (e) { console.error(e); }
         }
 
+        let blockedExtsList = [];
+        let blockedSitesList = [];
+
+        function renderTags() {
+            document.getElementById('extTags').innerHTML = blockedExtsList.map(t => 
+                `<div class="tag-item">${t} <span onclick="removeExt('${t}')">×</span></div>`
+            ).join('');
+            document.getElementById('siteTags').innerHTML = blockedSitesList.map(t => 
+                `<div class="tag-item">${t} <span onclick="removeSite('${t}')">×</span></div>`
+            ).join('');
+        }
+
+        function addExt() {
+            const val = document.getElementById('extInput').value.trim().toLowerCase();
+            if (val && !blockedExtsList.includes(val)) { blockedExtsList.push(val); renderTags(); }
+            document.getElementById('extInput').value = '';
+        }
+        function removeExt(val) { blockedExtsList = blockedExtsList.filter(t => t !== val); renderTags(); }
+
+        function addSite() {
+            const val = document.getElementById('siteInput').value.trim().toLowerCase();
+            if (val && !blockedSitesList.includes(val)) { blockedSitesList.push(val); renderTags(); }
+            document.getElementById('siteInput').value = '';
+        }
+        function removeSite(val) { blockedSitesList = blockedSitesList.filter(t => t !== val); renderTags(); }
+
         async function loadSettings() {
             try {
                 const res = await fetch(`${API_BASE}/settings`);
                 if (!res.ok) return;
                 const data = await res.json();
-                // 패스워드는 빈칸으로 둡니다.
-                if (data.blocked_extensions) document.getElementById('blockedExts').value = data.blocked_extensions.join(', ');
-                if (data.blocked_sites) document.getElementById('blockedSites').value = data.blocked_sites.join(', ');
+                
+                if (data.blocked_extensions) blockedExtsList = data.blocked_extensions;
+                else blockedExtsList = ['exe', 'bat', 'cmd', 'ps1', 'sh', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf', 'hwp', 'dwg', 'dxf', 'dwf'];
+                
+                if (data.blocked_sites) blockedSitesList = data.blocked_sites;
+                else blockedSitesList = []; // 기본적으로 비워둠 (1.5만개 내장 사용)
+                
+                renderTags();
             } catch (e) { console.error(e); }
         }
 
@@ -418,8 +479,8 @@
             const newPwd = document.getElementById('adminPassword').value;
             const confirmPwd = document.getElementById('adminPasswordConfirm').value;
             
-            const exts = document.getElementById('blockedExts').value.split(',').map(s=>s.trim());
-            const sites = document.getElementById('blockedSites').value.split(',').map(s=>s.trim());
+            const exts = blockedExtsList;
+            const sites = blockedSitesList;
             
             if (newPwd) {
                 if (newPwd !== confirmPwd) {
