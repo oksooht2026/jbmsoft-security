@@ -9,6 +9,7 @@ const osEngine = require('./security/os-engine');
 // --- 서버 동기화 상태 ---
 let heartbeatInterval = null;
 let pcId = null; // 서버에서 발급받은 PC UUID
+let isPageReady = false; // 페이지 로딩 완료 여부
 
 // --- 스토어 초기화 ---
 const store = new Store({
@@ -102,6 +103,11 @@ function createMainWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'src', 'main-window', 'index.html'));
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    isPageReady = true;
+    console.log('[Main] 렌더러 페이지 로딩 완료');
+  });
+
   mainWindow.on('close', (e) => {
     if (!isQuitting) {
       e.preventDefault();
@@ -166,8 +172,13 @@ function updateTrayMenu() {
       label: isKo ? '일시 중지 (관리자 인증 필요)' : 'Pause (Admin Auth Required)',
       click: () => {
         if (mainWindow) {
-          showMainWindow();
-          mainWindow.webContents.send('show-admin-auth', 'pause');
+          if (!mainWindow.isVisible()) mainWindow.show();
+          mainWindow.focus();
+          if (isPageReady) {
+            mainWindow.webContents.send('show-admin-auth', 'pause');
+          } else {
+            setTimeout(() => mainWindow.webContents.send('show-admin-auth', 'pause'), 1000);
+          }
         }
       }
     },
@@ -176,8 +187,13 @@ function updateTrayMenu() {
       label: isKo ? '종료' : 'Quit',
       click: () => {
         if (mainWindow) {
-          showMainWindow();
-          mainWindow.webContents.send('show-admin-auth', 'quit');
+          if (!mainWindow.isVisible()) mainWindow.show();
+          mainWindow.focus();
+          if (isPageReady) {
+            mainWindow.webContents.send('show-admin-auth', 'quit');
+          } else {
+            setTimeout(() => mainWindow.webContents.send('show-admin-auth', 'quit'), 1000);
+          }
         }
       }
     }

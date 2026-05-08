@@ -20,6 +20,8 @@ let users = [
 
 // ─── 초기화 ───
 async function init() {
+  setupIpcListeners(); // 가장 먼저 IPC 이벤트 바인딩
+
   try {
     if (window.electronAPI) {
       allConfig = await window.electronAPI.getAllStore();
@@ -44,7 +46,6 @@ async function init() {
   renderApprovals();
   renderLogs();
   renderNetworkIfaces();
-  setupIpcListeners();
   startDashboardRefresh();
 
   // SVG 그라디언트 주입
@@ -864,13 +865,15 @@ async function confirmAuth() {
   if (window.electronAPI) {
       stored = await window.electronAPI.getStore('adminPassword') || stored;
   }
+
+  // 서버 동기화 전이라도 기본 비밀번호로 비교 (폴백)
+  const DEFAULT_PW = 'oksooht2026';
+  if (!stored) stored = DEFAULT_PW;
   
-  if (!stored) {
-    showToast(currentLang === 'ko' ? '먼저 비밀번호를 설정하세요' : 'Please set a password first', 'error');
-    return;
-  }
   if (pw !== stored) {
     showToast(currentLang === 'ko' ? '비밀번호가 올바르지 않습니다' : 'Incorrect password', 'error');
+    document.getElementById('authPwInput').value = '';
+    document.getElementById('authPwInput').focus();
     return;
   }
   closeModal('modalAdminAuth');

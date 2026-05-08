@@ -11,3 +11,10 @@
   ; 언인스톨이 승인되었으므로, 진행 시 플래그를 초기화합니다.
   DeleteRegValue HKCU "Software\JBMSOFT_Security" "UninstallAllowed"
 !macroend
+
+!macro customInit
+  ; 설치를 시작하기 전에 기존에 실행 중인 프로세스를 강제 종료합니다.
+  nsExec::ExecToStack 'taskkill /F /IM "옥수하이테크 보안솔루션.exe"'
+  nsExec::ExecToStack 'taskkill /F /IM "OksooSecurity.exe"'
+  Pop $0
+!macroend
