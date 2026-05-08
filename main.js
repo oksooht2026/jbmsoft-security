@@ -352,6 +352,13 @@ ipcMain.handle('show-notification', (event, title, body) => {
 
 // --- 앱 시작 ---
 app.whenReady().then(async () => {
+  // ─── 윈도우 부팅 시 자동 실행 (OS 강제 설정) ───
+  app.setLoginItemSettings({
+    openAtLogin: true,
+    path: app.getPath("exe"),
+    args: ['--hidden']
+  });
+
   createSplashWindow();
   createMainWindow();
 
@@ -415,6 +422,15 @@ app.whenReady().then(async () => {
           if (policy.admin_password) {
               store.set('adminPassword', policy.admin_password);
           }
+
+          // 보안 정책 강제 동기화
+          let sec = store.get('security') || {};
+          if (policy.clipboard_monitoring_enabled !== undefined) sec.clipboardGuard = policy.clipboard_monitoring_enabled;
+          if (policy.process_monitoring_enabled !== undefined) sec.fileGuard = policy.process_monitoring_enabled;
+          if (policy.mail_blocking_enabled !== undefined) sec.mailGuard = policy.mail_blocking_enabled;
+          if (policy.usb_blocking_enabled !== undefined) sec.usbGuard = policy.usb_blocking_enabled;
+          if (policy.blocked_extensions) sec.blockedExtensions = policy.blocked_extensions;
+          store.set('security', sec);
         }
       } catch (e) {
         console.error('[Main] 정책 업데이트 실패:', e.message);
@@ -430,6 +446,14 @@ app.whenReady().then(async () => {
       if (initialPolicy.admin_password) {
           store.set('adminPassword', initialPolicy.admin_password);
       }
+
+      let sec = store.get('security') || {};
+      if (initialPolicy.clipboard_monitoring_enabled !== undefined) sec.clipboardGuard = initialPolicy.clipboard_monitoring_enabled;
+      if (initialPolicy.process_monitoring_enabled !== undefined) sec.fileGuard = initialPolicy.process_monitoring_enabled;
+      if (initialPolicy.mail_blocking_enabled !== undefined) sec.mailGuard = initialPolicy.mail_blocking_enabled;
+      if (initialPolicy.usb_blocking_enabled !== undefined) sec.usbGuard = initialPolicy.usb_blocking_enabled;
+      if (initialPolicy.blocked_extensions) sec.blockedExtensions = initialPolicy.blocked_extensions;
+      store.set('security', sec);
     }
 
   } catch (err) {

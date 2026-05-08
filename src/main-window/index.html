@@ -300,7 +300,7 @@
         <!-- 핵심 차단 설정 -->
         <div class="card">
           <div class="card-header">
-            <h3><i data-lucide="shield"></i> <span data-i18n="fs_guard_title">파일 보호 정책</span></h3>
+            <h3><i data-lucide="shield"></i> <span data-i18n="fs_guard_title">파일 보호 정책</span> <span style="font-size: 0.8rem; color: var(--danger); margin-left: 10px;">(관리자 중앙 통제)</span></h3>
           </div>
           <div class="toggle-row">
             <div class="toggle-info">
@@ -308,7 +308,7 @@
               <span class="toggle-desc" data-i18n="fs_clipboard_desc">파일을 클립보드로 복사하는 동작을 차단합니다</span>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="toggleClipboard" checked onchange="saveSecurity()">
+              <input type="checkbox" id="toggleClipboard" checked disabled>
               <span class="toggle-knob"></span>
             </label>
           </div>
@@ -318,7 +318,7 @@
               <span class="toggle-desc" data-i18n="fs_file_guard_desc">지정 폴더의 파일 변경·이동을 실시간 감시합니다</span>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="toggleFileGuard" checked onchange="saveSecurity()">
+              <input type="checkbox" id="toggleFileGuard" checked disabled>
               <span class="toggle-knob"></span>
             </label>
           </div>
@@ -328,7 +328,7 @@
               <span class="toggle-desc" data-i18n="fs_usb_desc">이동식 USB 드라이브로의 파일 전송을 차단합니다</span>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="toggleUSB" onchange="saveSecurity()">
+              <input type="checkbox" id="toggleUSB" disabled>
               <span class="toggle-knob"></span>
             </label>
           </div>
@@ -338,7 +338,7 @@
               <span class="toggle-desc" data-i18n="fs_print_guard_desc">스크린샷·화면 녹화 프로그램 실행 시 경고합니다</span>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="togglePrintGuard" checked onchange="saveSecurity()">
+              <input type="checkbox" id="togglePrintGuard" checked disabled>
               <span class="toggle-knob"></span>
             </label>
           </div>

@@ -293,6 +293,27 @@
                         <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">* 트레이 아이콘 종료, 정책 변경, 프로그램 무력화 시 요구되는 글로벌 비밀번호입니다.</p>
                     </div>
                     <div class="form-group" style="margin-top: 30px;">
+                        <label><i data-lucide="shield"></i> 전사 보안 정책 강제 (클라이언트 앱 통제)</label>
+                        <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; border-left: 3px solid var(--success); margin-bottom: 15px;">
+                            <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer;">
+                                <span><i data-lucide="copy" style="width:16px;height:16px;vertical-align:middle;margin-right:5px;"></i> 클립보드 파일 복사 차단</span>
+                                <input type="checkbox" id="policyClipboard">
+                            </label>
+                            <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer;">
+                                <span><i data-lucide="folder-lock" style="width:16px;height:16px;vertical-align:middle;margin-right:5px;"></i> 파일 변경·이동 감시</span>
+                                <input type="checkbox" id="policyFile">
+                            </label>
+                            <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer;">
+                                <span><i data-lucide="mail" style="width:16px;height:16px;vertical-align:middle;margin-right:5px;"></i> 외부 메일 전송 차단</span>
+                                <input type="checkbox" id="policyMail">
+                            </label>
+                            <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                                <span><i data-lucide="usb" style="width:16px;height:16px;vertical-align:middle;margin-right:5px;"></i> USB 외부 저장소 차단</span>
+                                <input type="checkbox" id="policyUsb">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 30px;">
                         <label>차단할 파일 확장자 <span style="font-size: 0.8rem; color: var(--text-muted);">(문서, 캐드 등 사내 보안 필요 확장자)</span></label>
                         <div class="input-group">
                             <input type="text" id="extInput" class="form-control" placeholder="예: exe, dwg, pdf" onkeypress="if(event.key==='Enter') addExt()">
@@ -474,6 +495,12 @@
                 if (data.blocked_sites) blockedSitesList = data.blocked_sites;
                 else blockedSitesList = []; // 기본적으로 비워둠 (1.5만개 내장 사용)
                 
+                // 보안 정책 셋업
+                document.getElementById('policyClipboard').checked = data.clipboard_monitoring_enabled !== false;
+                document.getElementById('policyFile').checked = data.process_monitoring_enabled !== false;
+                document.getElementById('policyMail').checked = data.mail_blocking_enabled !== false;
+                document.getElementById('policyUsb').checked = data.usb_blocking_enabled === true;
+                
                 renderTags();
             } catch (e) { console.error(e); }
         }
@@ -514,6 +541,12 @@
                 await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'blocked_extensions', value: JSON.stringify(exts) }) });
                 await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'blocked_sites', value: JSON.stringify(sites) }) });
                 
+                // 보안 정책 업데이트
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'clipboard_monitoring_enabled', value: JSON.stringify(document.getElementById('policyClipboard').checked) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'process_monitoring_enabled', value: JSON.stringify(document.getElementById('policyFile').checked) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'mail_blocking_enabled', value: JSON.stringify(document.getElementById('policyMail').checked) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'usb_blocking_enabled', value: JSON.stringify(document.getElementById('policyUsb').checked) }) });
+
                 document.getElementById('currentPassword').value = '';
                 document.getElementById('adminPassword').value = '';
                 document.getElementById('adminPasswordConfirm').value = '';
