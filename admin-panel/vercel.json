@@ -1,5 +1,9 @@
 {
   "version": 2,
+  "name": "oksooht-security-admin",
   "cleanUrls": true,
-  "framework": null
+  "framework": null,
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" }
+  ]
 }

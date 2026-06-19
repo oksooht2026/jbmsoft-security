@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
       const currentCount = pcsData ? pcsData.length : 0;
 
       const { data: setData } = await supabase.from('settings').select('value').eq('key', 'license_limit').single();
-      let limit = 10; // 기본값
+      let limit = 42; // 기본값
       if (setData && setData.value) {
           try { limit = parseInt(setData.value, 10); } catch(e) {}
       }
