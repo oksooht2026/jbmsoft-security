@@ -1,9 +1,10 @@
 // server-api/api/pcs.js
 const supabase = require('./lib/supabase');
+const { updatePcNickname } = require('./lib/pc-nickname');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-api-key');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -23,14 +24,25 @@ module.exports = async (req, res) => {
 
       if (error) throw error;
 
-      // 온라인 상태 계산 (2분 이내 last_seen = 온라인)
-      const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      // 하트비트 5분 주기 → 15분 이내 last_seen = 온라인
+      const onlineThresholdAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
       const pcsWithStatus = data.map(pc => ({
         ...pc,
-        is_online: pc.last_seen > twoMinsAgo
+        is_online: pc.last_seen && pc.last_seen > onlineThresholdAgo
       }));
 
       return res.status(200).json(pcsWithStatus);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
+    }
+  }
+
+  if (req.method === 'PATCH') {
+    const { mac_address, username } = req.body || {};
+    if (!mac_address) return res.status(400).json({ error: 'mac_address required' });
+    try {
+      const nickname = await updatePcNickname(supabase, mac_address, username);
+      return res.status(200).json({ success: true, mac_address, username: nickname || null });
     } catch (err) {
       return res.status(500).json({ error: err.message });
     }

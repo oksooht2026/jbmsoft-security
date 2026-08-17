@@ -1,0 +1,9 @@
+dist
+node_modules
+admin-panel
+src
+security
+relay-server
+scripts
+*.exe
+*.blockmap

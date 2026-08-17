@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "OKSOOHT Security Mail Logger",
+  "version": "1.0.0",
+  "description": "옥수하이테크 보안솔루션 — 웹메일 발송 감사 로그 수집",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAp+dLK2Aw+1KOYYJ4XTJcGw56YlJT8GM9nnQT51lcUjhzkEk1qjrw4RswwPMpuBvPtnXcrRAA647TBPvPpa/wAy0dvIWK5a+bL26PnA0N3vHNJ1RgWY/ZlMFijEOL2WYD1Tqn7wEXSEQR28LPf/cky2tnNoHPRalY1EU8SK/PnHOraC83qUMw7jeOmqfTZc/Tcu5ywhvFvMJFPKXzoIZJQWD71LYTB4p4flLCndrn34l8gzkiXgGs91afWRTn62UPvFK6k5Frp1xfIRB3t24SgIgv/+Y9l3l7gJDSIRVB0fMMkXIq82BgdbFIf98i6StfsAxxYZVZp9F16KYXTug1uwIDAQAB",
+  "permissions": [
+    "nativeMessaging",
+    "webRequest"
+  ],
+  "host_permissions": [
+    "*://mail.naver.com/*",
+    "*://*.worksmobile.com/*",
+    "*://mail.worksmobile.com/*",
+    "*://mail.google.com/*",
+    "*://*.daouoffice.com/*",
+    "*://mail.daum.net/*",
+    "*://*.outlook.com/*",
+    "*://*.office365.com/*",
+    "*://*.office.com/*",
+    "*://mail.kakao.com/*",
+    "*://*/*mail*/*",
+    "*://*/*groupware*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://mail.naver.com/*",
+        "*://*.worksmobile.com/*",
+        "*://mail.worksmobile.com/*",
+        "*://mail.google.com/*",
+        "*://*.daouoffice.com/*",
+        "*://mail.daum.net/*",
+        "*://*.outlook.com/*",
+        "*://*.office365.com/*",
+        "*://*.office.com/*",
+        "*://mail.kakao.com/*",
+        "*://*/*mail*/*",
+        "*://*/*groupware*/*"
+      ],
+      "js": ["lib/mail-parser.js", "content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}

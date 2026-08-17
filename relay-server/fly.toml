@@ -1,0 +1,45 @@
+# Fly.io 배포 (Oracle 대안 — 무료 크레딧 한도 내, 슬립 가능)
+# flyctl install 후: cd relay-server && fly launch && fly deploy
+
+app = "oksooht-relay"
+primary_region = "nrt"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  RELAY_SECRET = "oksooht-remote-2026"
+  HOST = "0.0.0.0"
+
+[http_service]
+  internal_port = 8765
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 8765
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 100
+    soft_limit = 80
+
+[checks]
+  [checks.health]
+    port = 8765
+    type = "http"
+    interval = "30s"
+    timeout = "5s"
+    path = "/health"

@@ -1,76 +1,121 @@
 // security/site-blocker.js
 const fs = require('fs');
 const path = require('path');
+const { exec } = require('child_process');
 
 const HOSTS_PATH = 'C:\\Windows\\System32\\drivers\\etc\\hosts';
 const MARKER_START = '# --- JBMSOFT_SECURITY_START ---';
 const MARKER_END = '# --- JBMSOFT_SECURITY_END ---';
 
-/**
- * 유해 사이트를 Windows hosts 파일을 수정하여 차단합니다.
- * (주의: Electron 앱이 관리자 권한으로 실행되어야 합니다)
- * @param {string[]} sitesToBlock - 차단할 도메인 배열 (예: ['pornhub.com', 'ilbe.com'])
- */
+let baseSites = [];
+const tempAllowed = new Map(); // domain -> expiresAt
+
+function setBaseSites(sites) {
+  baseSites = Array.isArray(sites) ? [...sites] : [];
+  rebuildHosts();
+}
+
+function allowDomainsTemporarily(domains, ttlMs = 30 * 60 * 1000) {
+  if (!Array.isArray(domains) || !domains.length) return false;
+  const exp = Date.now() + ttlMs;
+  domains.forEach(d => {
+    const clean = d.trim().toLowerCase();
+    if (clean) tempAllowed.set(clean, exp);
+  });
+  console.log(`[SiteBlocker] 임시 허용 (${ttlMs / 60000}분):`, domains.join(', '));
+  return rebuildHosts();
+}
+
+function getEffectiveBlockList() {
+  const now = Date.now();
+  for (const [d, exp] of tempAllowed) {
+    if (now > exp) tempAllowed.delete(d);
+  }
+  const allowed = new Set(tempAllowed.keys());
+  return baseSites.filter(s => !allowed.has(s.trim().toLowerCase()));
+}
+
+function rebuildHosts() {
+  let defaultSites = [];
+  try {
+    const blocklistPath = path.join(__dirname, 'default-blocklist.json');
+    if (fs.existsSync(blocklistPath)) {
+      const data = JSON.parse(fs.readFileSync(blocklistPath, 'utf8'));
+      if (data && Array.isArray(data.domains)) defaultSites = data.domains;
+    }
+  } catch (_) {}
+
+  const mergedSites = Array.from(new Set([...defaultSites, ...getEffectiveBlockList()]));
+  return writeHosts(mergedSites);
+}
+
 function updateBlockedSites(sitesToBlock) {
-    if (!Array.isArray(sitesToBlock)) return false;
-    
-    // 로컬 대규모 블랙리스트 로드
-    let defaultSites = [];
-    try {
-        const blocklistPath = path.join(__dirname, 'default-blocklist.json');
-        if (fs.existsSync(blocklistPath)) {
-            const data = JSON.parse(fs.readFileSync(blocklistPath, 'utf8'));
-            if (data && Array.isArray(data.domains)) {
-                defaultSites = data.domains;
-            }
-        }
-    } catch(e) {
-        console.error('[SiteBlocker] 기본 블랙리스트 로드 실패:', e.message);
-    }
-    
-    // 중복 제거 후 병합
-    const mergedSites = Array.from(new Set([...defaultSites, ...sitesToBlock]));
-    
-    try {
-        let hostsContent = '';
-        if (fs.existsSync(HOSTS_PATH)) {
-            hostsContent = fs.readFileSync(HOSTS_PATH, 'utf8');
-        }
-        
-        // 기존 보안 프로그램이 추가한 차단 내역 제거
-        const regex = new RegExp(`\\n?${MARKER_START}[\\s\\S]*?${MARKER_END}\\n?`, 'g');
-        hostsContent = hostsContent.replace(regex, '');
+  setBaseSites(sitesToBlock);
+  return true;
+}
 
-        // 새로운 차단 목록 추가
-        if (mergedSites.length > 0) {
-            let blockData = `\n${MARKER_START}\n`;
-            blockData += `# 이 섹션은 JBMSOFT Security에 의해 관리됩니다.\n`;
-            mergedSites.forEach(site => {
-                const cleanSite = site.trim();
-                if (cleanSite) {
-                    blockData += `127.0.0.1 ${cleanSite}\n`;
-                    // www.를 무조건 붙이면 너무 용량이 커지므로, 수만 개일 때는 그대로 씁니다.
-                    // blockData += `127.0.0.1 www.${cleanSite}\n`;
-                }
-            });
-            blockData += `${MARKER_END}\n`;
-            hostsContent += blockData;
-        }
+/** 웹메일 등 특정 도메인을 차단 목록에서 제거 (메일 접속 복구) */
+function unblockDomains(domains) {
+  if (!Array.isArray(domains) || !domains.length) return rebuildHosts();
+  const drop = new Set(domains.map(d => d.trim().toLowerCase()).filter(Boolean));
+  baseSites = baseSites.filter(s => !drop.has(s.trim().toLowerCase()));
+  for (const d of drop) tempAllowed.delete(d);
+  return rebuildHosts();
+}
 
-        // hosts 파일 쓰기
-        fs.writeFileSync(HOSTS_PATH, hostsContent, 'utf8');
-        console.log(`[SiteBlocker] Hosts 파일 업데이트 성공. 총 차단된 사이트 수: ${mergedSites.length}`);
-        return true;
-    } catch (error) {
-        if (error.code === 'EPERM' || error.code === 'EACCES') {
-            console.error('[SiteBlocker] Hosts 파일 쓰기 실패 (관리자 권한 필요):', error.message);
-        } else {
-            console.error('[SiteBlocker] 알 수 없는 오류:', error.message);
-        }
-        return false;
+function writeHosts(mergedSites) {
+  try {
+    let hostsContent = '';
+    if (fs.existsSync(HOSTS_PATH)) {
+      hostsContent = fs.readFileSync(HOSTS_PATH, 'utf8');
     }
+
+    const regex = new RegExp(`\\n?${MARKER_START}[\\s\\S]*?${MARKER_END}\\n?`, 'g');
+    hostsContent = hostsContent.replace(regex, '');
+
+    if (mergedSites.length > 0) {
+      let blockData = `\n${MARKER_START}\n`;
+      blockData += `# JBMSOFT Security 관리 구역\n`;
+      mergedSites.forEach(site => {
+        const cleanSite = site.trim();
+        if (cleanSite) blockData += `127.0.0.1 ${cleanSite}\n`;
+      });
+      blockData += `${MARKER_END}\n`;
+      hostsContent += blockData;
+    }
+
+    fs.writeFileSync(HOSTS_PATH, hostsContent, 'utf8');
+    exec('ipconfig /flushdns', { windowsHide: true }, () => {});
+    console.log(`[SiteBlocker] Hosts 업데이트 — 차단 ${mergedSites.length}개, 임시허용 ${tempAllowed.size}개`);
+    return true;
+  } catch (error) {
+    console.error('[SiteBlocker] Hosts 쓰기 실패:', error.message);
+    return false;
+  }
 }
 
 module.exports = {
-    updateBlockedSites
+  updateBlockedSites,
+  unblockDomains,
+  allowDomainsTemporarily,
+  getEffectiveBlockList,
+  /** 일시 중지·종료 시 hosts 차단 전부 제거 (웹메일 포함) */
+  clearAllBlocks() {
+    baseSites = [];
+    tempAllowed.clear();
+    try {
+      let hostsContent = '';
+      if (fs.existsSync(HOSTS_PATH)) {
+        hostsContent = fs.readFileSync(HOSTS_PATH, 'utf8');
+      }
+      const regex = new RegExp(`\\n?${MARKER_START}[\\s\\S]*?${MARKER_END}\\n?`, 'g');
+      hostsContent = hostsContent.replace(regex, '').trimEnd() + '\n';
+      fs.writeFileSync(HOSTS_PATH, hostsContent, 'utf8');
+      console.log('[SiteBlocker] hosts 차단 구역 전체 제거');
+      return true;
+    } catch (error) {
+      console.error('[SiteBlocker] hosts 복구 실패:', error.message);
+      return false;
+    }
+  }
 };

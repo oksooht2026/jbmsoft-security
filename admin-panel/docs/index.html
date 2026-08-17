@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문서 열기 감시 — OKSOOHT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-base: #050505;
+      --bg-surface: rgba(15, 15, 20, 0.6);
+      --primary: #00f0ff;
+      --text-main: #ffffff;
+      --text-muted: #8b8b99;
+      --danger: #ff2a55;
+      --success: #00ff88;
+      --border-light: rgba(255, 255, 255, 0.08);
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(circle at 15% 50%, rgba(112,0,255,0.25) 0%, transparent 40%),
+        radial-gradient(circle at 85% 30%, rgba(0,240,255,0.2) 0%, transparent 40%);
+    }
+    .glass {
+      background: var(--bg-surface);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+    }
+    .topbar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.25rem 2rem; border-bottom: 1px solid var(--border-light);
+      background: rgba(5,5,5,0.5); backdrop-filter: blur(10px);
+      position: sticky; top: 0; z-index: 100;
+    }
+    .topbar h1 { font-size: 1.35rem; font-weight: 600; }
+    .topbar h1 span { color: var(--primary); }
+    .topbar-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .btn {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border-light);
+      color: var(--text-main); padding: 8px 14px; border-radius: 10px;
+      font-family: inherit; font-size: 0.9rem; cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover { background: rgba(255,255,255,0.1); }
+    .btn.primary { background: rgba(0,240,255,0.15); color: var(--primary); border-color: rgba(0,240,255,0.3); }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+    .info {
+      padding: 14px 18px; margin-bottom: 1.5rem; font-size: 0.88rem;
+      color: var(--text-muted); line-height: 1.55;
+    }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
+    th { color: var(--text-muted); font-weight: 500; font-size: 0.88rem; }
+    td { font-size: 0.92rem; word-break: break-word; }
+    tr.doc-row { cursor: pointer; transition: background 0.2s; }
+    tr.doc-row:hover { background: rgba(0,240,255,0.04); }
+    tr.doc-row.selected { background: rgba(0,240,255,0.08); }
+    .preview-panel { margin-top: 1.5rem; padding: 1.5rem; display: none; }
+    .preview-panel.active { display: block; }
+    .preview-panel h3 { color: var(--primary); margin-bottom: 12px; word-break: break-all; }
+    .meta-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px; margin-bottom: 16px; font-size: 0.88rem;
+    }
+    .meta-grid span { color: var(--text-muted); display: block; margin-bottom: 2px; }
+    .meta-grid strong { word-break: break-all; font-weight: 500; }
+    .preview-frame {
+      width: 100%; height: 560px; border: 1px solid var(--border-light);
+      border-radius: 12px; background: #111; margin-top: 8px;
+    }
+    .preview-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+    .note { color: var(--text-muted); font-size: 0.85rem; margin-top: 10px; line-height: 1.5; }
+    #authOverlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(5,5,5,0.96); display: flex; align-items: center; justify-content: center;
+    }
+    .auth-box { width: 100%; max-width: 400px; padding: 2rem; }
+    .auth-box h2 { margin-bottom: 8px; }
+    .form-control {
+      width: 100%; padding: 12px; border-radius: 10px; margin: 12px 0;
+      background: rgba(0,0,0,0.35); border: 1px solid var(--border-light); color: #fff;
+    }
+    .empty { text-align: center; padding: 48px; color: var(--text-muted); }
+    .badge-ok { color: var(--success); font-size: 0.75rem; }
+    .badge-no { color: var(--text-muted); font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div id="authOverlay">
+    <div class="auth-box glass">
+      <h2>🔒 문서 감시 로그인</h2>
+      <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:8px;">관리자 마스터 비밀번호 (메인 패널과 동일)</p>
+      <input type="password" id="loginPw" class="form-control" placeholder="비밀번호" onkeypress="if(event.key==='Enter')doLogin()">
+      <button class="btn primary" style="width:100%;justify-content:center;padding:12px;" onclick="doLogin()">로그인</button>
+      <p id="loginErr" style="color:var(--danger);font-size:0.85rem;margin-top:10px;display:none;"></p>
+    </div>
+  </div>
+
+  <header class="topbar">
+    <h1><span>📄</span> 문서 열기 감시</h1>
+    <div class="topbar-actions">
+      <span id="refreshHint" style="font-size:0.8rem;color:var(--text-muted);">15초마다 자동 갱신</span>
+      <button class="btn" onclick="fetchDocs()"><i data-lucide="refresh-cw"></i> 새로고침</button>
+      <a class="btn" href="/">← 관리자 패널</a>
+      <button class="btn" onclick="doLogout()" style="color:var(--danger);">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="wrap" id="appMain" style="display:none;">
+    <div class="info glass">
+      PC에서 Word·Excel·PowerPoint·한글·PDF 등 문서를 열면 자동 감지됩니다.
+      <strong style="color:var(--text-main)">10MB 이하</strong> 파일은 미리보기·다운로드 가능합니다.
+      전체 PC 합산 <strong style="color:var(--text-main)">하루 10건</strong>, 총 저장 <strong style="color:var(--text-main)">500MB</strong>까지 업로드됩니다. 초과 시 열기 기록만 남습니다.
+      <strong style="color:var(--text-main)">보안 로그에는 기록되지 않습니다.</strong>
+    </div>
+
+    <div class="glass table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%">PC</th>
+            <th style="width:32%">문서명</th>
+            <th style="width:18%">프로그램</th>
+            <th style="width:28%">시간</th>
+          </tr>
+        </thead>
+        <tbody id="docsBody">
+          <tr><td colspan="4" class="empty">불러오는 중…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="previewPanel" class="preview-panel glass">
+      <h3 id="previewTitle">문서 상세</h3>
+      <div class="meta-grid" id="previewMeta"></div>
+      <div id="previewContent"></div>
+    </div>
+  </div>
+
+  <script src="../config.js"></script>
+  <script>
+    const API_BASE = window.API_BASE;
+    const HEADERS = window.HEADERS;
+    let docsCache = [];
+    let pollTimer = null;
+
+    function esc(s) {
+      return String(s ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/\u003c/g, '&lt;')
+        .replace(/\u003e/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatSize(bytes) {
+      if (!bytes) return '-';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function isOfficeMime(mime, name) {
+      const ext = (name || '').split('.').pop().toLowerCase();
+      if (/^application\/vnd\.(ms-|openxmlformats-)/.test(mime || '')) return true;
+      return ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
+    }
+
+    async function doLogin() {
+      const pw = document.getElementById('loginPw').value;
+      const err = document.getElementById('loginErr');
+      err.style.display = 'none';
+      try {
+        const ok = await verifyAdminPassword(pw);
+        if (!ok) {
+          err.textContent = '비밀번호가 올바르지 않습니다.';
+          err.style.display = 'block';
+          return;
+        }
+        saveAdminSession(pw);
+        showApp();
+      } catch (e) {
+        err.textContent = '서버 연결 실패';
+        err.style.display = 'block';
+      }
+    }
+
+    function doLogout() {
+      clearAdminSession();
+      location.reload();
+    }
+
+    function showApp() {
+      document.getElementById('authOverlay').style.display = 'none';
+      document.getElementById('appMain').style.display = 'block';
+      fetchDocs();
+      pollTimer = setInterval(function() {
+        if (document.visibilityState === 'visible') fetchDocs();
+      }, 15000);
+      try { lucide.createIcons(); } catch (_) {}
+    }
+
+    async function fetchDocs() {
+      try {
+        const res = await fetch(API_BASE + '/documents?limit=200', { headers: HEADERS });
+        if (res.status === 401) { doLogout(); return; }
+        if (!res.ok) throw new Error('fetch failed');
+        renderDocs(await res.json());
+      } catch (e) {
+        console.error(e);
+        document.getElementById('docsBody').innerHTML = '<tr><td colspan="4" class="empty">불러오기 실패</td></tr>';
+      }
+    }
+
+    function renderDocs(items) {
+      docsCache = items || [];
+      const tbody = document.getElementById('docsBody');
+      if (!docsCache.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">문서 열기 기록이 없습니다</td></tr>';
+        return;
+      }
+      tbody.innerHTML = docsCache.map(function(item, idx) {
+        const tag = item.has_preview
+          ? '<span class="badge-ok">● 미리보기</span>'
+          : '<span class="badge-no">메타만</span>';
+        return '<tr class="doc-row" data-idx="' + idx + '" onclick="showDetail(' + idx + ')">' +
+          '<td>' + esc(item.hostname || '-') + '<br>' + tag + '</td>' +
+          '<td style="color:var(--primary);font-weight:600">' + esc(item.document_name) + '</td>' +
+          '<td>' + esc(item.application || '-') + '</td>' +
+          '<td style="font-family:\'JetBrains Mono\',monospace;font-size:0.82rem">' +
+          new Date(item.created_at).toLocaleString('ko-KR') + '</td></tr>';
+      }).join('');
+    }
+
+    function showDetail(idx) {
+      const item = docsCache[idx];
+      if (!item) return;
+      document.querySelectorAll('.doc-row').forEach(function(r) {
+        r.classList.toggle('selected', r.dataset.idx == idx);
+      });
+      document.getElementById('previewTitle').textContent = item.document_name || '문서 상세';
+      document.getElementById('previewMeta').innerHTML = [
+        ['PC', item.hostname || '-'],
+        ['프로그램', item.application || '-'],
+        ['프로세스', item.process || '-'],
+        ['로컬 경로', item.file_path || '-'],
+        ['크기', formatSize(item.file_size)],
+        ['감지 시각', new Date(item.created_at).toLocaleString('ko-KR')]
+      ].map(function(pair) {
+        return '<div><span>' + esc(pair[0]) + '</span><strong>' + esc(pair[1]) + '</strong></div>';
+      }).join('');
+
+      const box = document.getElementById('previewContent');
+      const url = item.preview_url;
+      const mime = item.mime_type || '';
+      const name = item.document_name || '';
+
+      if (url) {
+        let previewHtml = '';
+        if (mime === 'application/pdf') {
+          previewHtml = '<iframe class="preview-frame" src="' + esc(url) + '#toolbar=1" title="PDF"></iframe>';
+        } else if (mime.indexOf('text/') === 0) {
+          previewHtml = '<iframe class="preview-frame" src="' + esc(url) + '" title="text"></iframe>';
+        } else if (mime.indexOf('image/') === 0) {
+          previewHtml = '<img src="' + esc(url) + '" alt="preview" style="max-width:100%;border-radius:12px;margin-top:8px;">';
+        } else if (isOfficeMime(mime, name)) {
+          const officeUrl = 'https://view.officeapps.live.com/op/embed.aspx?src=' + encodeURIComponent(url);
+          previewHtml = '<iframe class="preview-frame" src="' + esc(officeUrl) + '" title="Office"></iframe>' +
+            '<p class="note">Word/Excel/PPT 미리보기 (Microsoft Office Online). 로딩에 10~20초 걸릴 수 있습니다.</p>';
+        } else {
+          previewHtml = '<p class="note">브라우저 내장 미리보기 미지원 형식입니다. 다운로드 후 확인하세요.</p>';
+        }
+        box.innerHTML = previewHtml +
+          '<div class="preview-actions">' +
+          '<a class="btn primary" href="' + esc(url) + '" target="_blank" rel="noopener" download>⬇ 파일 다운로드</a>' +
+          '<a class="btn" href="' + esc(url) + '" target="_blank" rel="noopener">새 탭에서 열기</a>' +
+          '</div>';
+      } else {
+        box.innerHTML = '<p class="note">파일 미업로드 — 10MB 초과, 일일 10건 한도, 500MB 저장 한도, 또는 PC에서 경로 미발견.<br>' +
+          (item.upload_skip_reason ? '사유: ' + esc(item.upload_skip_reason) + '<br>' : '') +
+          'Word/Excel 문서는 해당 프로그램에서 <strong>저장된 파일</strong>을 열어야 경로가 잡힙니다.</p>';
+      }
+
+      document.getElementById('previewPanel').classList.add('active');
+      document.getElementById('previewPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    if (isAdminLoggedIn()) showApp();
+  </script>
+</body>
+</html>

@@ -11,7 +11,7 @@ const SOURCES = [
     'https://raw.githubusercontent.com/blocklistproject/Lists/master/malware.txt'
 ];
 
-const TARGET = path.join(__dirname, 'security', 'default-blocklist.json');
+const TARGET = path.join(__dirname, 'default-blocklist.json');
 
 async function fetchList(url) {
     return new Promise((resolve, reject) => {

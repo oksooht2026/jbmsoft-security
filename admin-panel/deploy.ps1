@@ -2,7 +2,7 @@
 # 최초 1회: npx vercel login
 # 이후: .\deploy.ps1
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 Set-Location $PSScriptRoot
 
 Write-Host "OKSOOHT Security Admin 배포 중..." -ForegroundColor Cyan

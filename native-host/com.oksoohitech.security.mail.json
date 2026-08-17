@@ -1,0 +1,9 @@
+{
+  "name": "com.oksoohitech.security.mail",
+  "description": "OKSOOHT Security Mail Logger Native Host",
+  "path": "INSTALL_DIR\\native-host\\OksooMailHost.cmd",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://REPLACE_WITH_EXTENSION_ID/"
+  ]
+}

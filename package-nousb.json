@@ -1,0 +1,57 @@
+{
+  "appId": "com.oksoohitech.security.nousb",
+  "productName": "OksooSecurity-MailOnly",
+  "copyright": "Copyright 2026 JBM SOFT",
+  "extraMetadata": {
+    "main": "main-nousb.js"
+  },
+  "files": [
+    "main-nousb.js",
+    "preload.js",
+    "src/**/*",
+    "security/**/*",
+    "package.json",
+    "node_modules/**/*",
+    "!node_modules/.cache/**/*",
+    "!**/test/**",
+    "!server-api/**",
+    "!admin-panel/**",
+    "!chrome-extension/**",
+    "!mail-uia-test/**",
+    "!*.md",
+    "!update_db.js",
+    "!scratch_replace.py",
+    "!portfolio_demo.html"
+  ],
+  "extraResources": [
+    {
+      "from": "native-host",
+      "to": "native-host",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "requestedExecutionLevel": "requireAdministrator"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "artifactName": "OksooSecurity_MailOnly_Setup.exe",
+    "include": "build/installer.nsh",
+    "runAfterFinish": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "옥수하이테크 보안솔루션(메일전용)"
+  }
+}

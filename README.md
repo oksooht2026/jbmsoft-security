@@ -21,13 +21,63 @@
 
 ## 실행 방법
 
+### 1. 사전 준비 (최초 1회)
+
 ```bash
 # 의존성 설치
 npm install
 
-# 앱 실행
+# Supabase DB 설정 동기화 (라이선스 42대, 정책 등)
+node update_db.js
+
+# API 서버 Vercel 배포 (/sync API 포함)
+cd server-api
+vercel --prod
+```
+
+### 2. 클라이언트 테스트 (개발)
+
+**PowerShell을 관리자 권한으로** 실행:
+
+```bash
+cd D:\JBMSOFT_Security
 npm start
 ```
+
+> 관리자 권한 필수 — USB 차단, hosts 파일 수정, 방화벽 규칙 적용에 필요합니다.
+
+### 3. 설치 파일 빌드 (42대 배포용)
+
+```bash
+npm run build
+# → dist/OksooSecurity_Setup.exe 생성
+```
+
+생성된 설치 파일을 각 PC에 배포합니다.
+
+### 4. 관리자 패널
+
+브라우저에서 `admin-panel/index.html` 열기 (또는 admin-panel Vercel 배포 URL)
+
+| 메뉴 | 용도 |
+|------|------|
+| 관제 대시보드 | PC 현황, 승인 요청, 보안 로그 |
+| 결재 / 승인함 | USB·메일·파일 승인/거부 |
+| 글로벌 정책 | USB, 메일, 확장자, 사이트 차단 설정 |
+| 라이선스 | 등록 PC 수 / 42대 한도 관리 |
+| 설치 · 테스트 | 상세 가이드 |
+
+**로그인:** 마스터 비밀번호 (기본 `oksooht2026`)
+
+> `license-manager.html` 은 관리자 패널 **라이선스** 탭으로 통합되었습니다.
+
+### 5. 기능 테스트 체크리스트
+
+- [ ] USB 꽂기 → 차단 → 관리자 패널에서 승인 → 사용 가능
+- [ ] `test.pdf` 복사 → 격리 → 승인 → 파일 복원
+- [ ] 메일 발송 시도 → 차단 → 승인 → 발송 허용
+- [ ] `mail.naver.com` 브라우저 접속 차단 확인
+- [ ] 관리자 패널에 PC **Online** 표시 (5분 이내)
 
 ---
 

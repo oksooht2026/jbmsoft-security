@@ -6,7 +6,8 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
-    "build": "electron-builder --win"
+    "build": "electron-builder --win",
+    "build:nousb": "electron-builder --win --config package-nousb.json"
   },
   "keywords": [
     "security",
@@ -23,21 +24,72 @@
     "bcryptjs": "^2.4.3",
     "chokidar": "^3.5.3",
     "electron-store": "^5.2.0",
+    "node-forge": "^1.4.0",
     "uuid": "^9.0.0",
-    "winreg": "^1.2.5"
+    "winreg": "^1.2.5",
+    "ws": "^8.21.0"
   },
   "build": {
     "appId": "com.oksoohitech.security",
-    "productName": "옥수하이테크 보안솔루션",
+    "productName": "OksooSecurity",
     "copyright": "Copyright © 2026 JBM SOFT",
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "security/**/*",
+      "package.json",
+      "node_modules/**/*",
+      "!node_modules/.cache/**/*",
+      "!**/test/**",
+      "!server-api/**",
+      "!admin-panel/**",
+      "!chrome-extension/**",
+      "!mail-uia-test/**",
+      "!*.md",
+      "!update_db.js",
+      "!scratch_replace.py",
+      "!portfolio_demo.html"
+    ],
+    "extraResources": [
+      {
+        "from": "native-host",
+        "to": "native-host",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "win": {
-      "target": "nsis"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "requireAdministrator"
+    },
+    "portable": {
+      "artifactName": "OksooSecurity_Portable.${ext}"
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "artifactName": "OksooSecurity_Setup.${ext}",
-      "include": "build/installer.nsh"
+      "include": "build/installer.nsh",
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "옥수하이테크 보안솔루션"
     }
   }
 }

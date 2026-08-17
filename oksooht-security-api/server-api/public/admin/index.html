@@ -1,0 +1,2414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#050505">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>OKSOOHT Security Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <style>
+        :root {
+            --bg-base: #050505;
+            --bg-surface: rgba(15, 15, 20, 0.6);
+            --bg-surface-hover: rgba(25, 25, 35, 0.8);
+            --primary: #00f0ff;
+            --primary-glow: rgba(0, 240, 255, 0.4);
+            --secondary: #7000ff;
+            --secondary-glow: rgba(112, 0, 255, 0.4);
+            --text-main: #ffffff;
+            --text-muted: #8b8b99;
+            --danger: #ff2a55;
+            --success: #00ff88;
+            --border-light: rgba(255, 255, 255, 0.08);
+            --glass-blur: blur(20px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            overflow-x: hidden;
+            min-height: 100vh;
+            background-image: 
+                radial-gradient(circle at 15% 50%, var(--secondary-glow) 0%, transparent 40%),
+                radial-gradient(circle at 85% 30%, var(--primary-glow) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        .glass-panel {
+            background: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        }
+
+        .dashboard-container { display: flex; min-height: 100vh; }
+
+        .sidebar {
+            width: 280px; padding: 2rem; display: flex; flex-direction: column; gap: 2rem;
+            border-right: 1px solid var(--border-light);
+            background: rgba(5, 5, 5, 0.3); backdrop-filter: blur(10px); z-index: 10;
+            min-height: 100vh;
+        }
+        .nav-menu { flex: 1; }
+
+        .main-content { flex: 1; padding: 2.5rem 3rem; overflow-y: auto; min-width: 0; }
+
+        .brand {
+            display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: 700;
+            letter-spacing: -0.5px; background: linear-gradient(135deg, var(--primary), #ffffff);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .nav-menu { display: flex; flex-direction: column; gap: 8px; }
+        .nav-item {
+            padding: 14px 18px; border-radius: 16px; color: var(--text-muted);
+            display: flex; align-items: center; gap: 14px; font-weight: 500;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: 1px solid transparent;
+        }
+        .nav-item:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.03); transform: translateX(5px); }
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(0, 240, 255, 0.1), transparent);
+            color: var(--primary); border: 1px solid rgba(0, 240, 255, 0.2);
+            box-shadow: inset 4px 0 0 var(--primary);
+        }
+
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3rem; gap: 1rem; flex-wrap: wrap; }
+        .page-title { font-size: 2.2rem; font-weight: 600; letter-spacing: -1px; }
+
+        .status-indicator {
+            display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 100px;
+            background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); color: var(--success);
+            font-size: 0.9rem; font-weight: 500;
+        }
+        .status-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+            box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite;
+        }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+        .stat-card { padding: 1.8rem; position: relative; overflow: hidden; transition: transform 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4); }
+        .stat-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%); pointer-events: none;
+        }
+        .stat-icon { position: absolute; top: 10px; right: 10px; opacity: 0.1; width: 80px; height: 80px; color: var(--primary); }
+        .stat-card.danger .stat-icon { color: var(--danger); }
+        
+        .stat-label { color: var(--text-muted); font-size: 0.95rem; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; }
+        .stat-value {
+            font-size: 3rem; font-weight: 700;
+            background: linear-gradient(to right, #fff, #a0a0a0); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .stat-card.danger .stat-value { background: linear-gradient(to right, var(--danger), #ff8a9f); -webkit-background-clip: text; }
+        .stat-card.primary .stat-value { background: linear-gradient(to right, var(--primary), #8affff); -webkit-background-clip: text; }
+
+        .data-section { margin-bottom: 3rem; display: none; }
+        .data-section.active { display: block; animation: fadeInUp 0.4s ease forwards; }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .section-title { font-size: 1.3rem; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-light); color: var(--text-main);
+            padding: 8px 16px; border-radius: 12px; font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 500;
+            cursor: pointer; transition: all 0.3s; display: flex; align-items: center; gap: 6px;
+        }
+        .btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+        .btn.primary { background: rgba(0, 240, 255, 0.2); color: var(--primary); border-color: rgba(0, 240, 255, 0.3); }
+        .btn.primary:hover { background: rgba(0, 240, 255, 0.3); }
+
+        .log-item {
+            display: grid;
+            grid-template-columns: minmax(110px, auto) 1fr auto;
+            gap: 12px 16px;
+            align-items: start;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        @media (max-width: 768px) {
+            .log-item { grid-template-columns: 1fr; }
+            .log-time { justify-self: start; }
+        }
+        .log-badge {
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: center;
+            line-height: 1.35;
+            word-break: break-word;
+            white-space: normal;
+            flex-shrink: 0;
+        }
+        .badge-critical { background: rgba(255, 42, 85, 0.15); color: var(--danger); border: 1px solid rgba(255, 42, 85, 0.3); }
+        .badge-info { background: rgba(0, 240, 255, 0.15); color: var(--primary); border: 1px solid rgba(0, 240, 255, 0.3); }
+        .badge-warning { background: rgba(112, 0, 255, 0.15); color: #b070ff; border: 1px solid rgba(112, 0, 255, 0.3); }
+
+        .log-content { flex: 1; min-width: 0; overflow: hidden; }
+        .log-msg { font-weight: 500; margin-bottom: 4px; font-size: 1rem; word-break: break-word; overflow-wrap: anywhere; line-height: 1.45; }
+        .log-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .log-time { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; text-align: right; }
+
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .custom-table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 720px; table-layout: fixed; }
+        .custom-table th { text-align: left; padding: 14px 16px; color: var(--text-muted); font-weight: 500; font-size: 0.9rem; border-bottom: 1px solid var(--border-light); }
+        .custom-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.02); font-size: 0.92rem; vertical-align: top; word-break: break-word; overflow-wrap: anywhere; line-height: 1.45; }
+        .nick-cell .nick-view { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .nick-cell .nick-edit { display: none; align-items: center; flex-wrap: wrap; gap: 6px; }
+        .nick-cell .nick-edit .nick-input {
+            width: 140px; padding: 6px 10px; border-radius: 8px;
+            border: 1px solid var(--border-light); background: rgba(0,0,0,0.35); color: var(--text-main);
+        }
+        .nick-cell .nick-edit-btn { padding: 4px 8px; min-width: auto; }
+        .custom-table .col-pc { width: 16%; }
+        .custom-table .col-content { width: 22%; }
+        .custom-table .col-detail { width: 28%; }
+        .custom-table .col-user { width: 10%; }
+        .custom-table .col-status { width: 10%; }
+        .custom-table .col-action { width: 14%; }
+        .approval-detail { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+        .approval-detail .detail-line { margin-bottom: 3px; }
+        .approval-detail .detail-line strong { color: var(--text-main); font-weight: 500; }
+        .status-pill {
+            display: inline-block; padding: 5px 12px; border-radius: 999px;
+            font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+            letter-spacing: 0; text-transform: none; line-height: 1.2;
+        }
+        .status-pill.pending { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); }
+        .status-pill.approved { background: rgba(0,240,255,0.12); color: var(--primary); border: 1px solid rgba(0,240,255,0.3); }
+        .status-pill.rejected { background: rgba(255,42,85,0.12); color: var(--danger); border: 1px solid rgba(255,42,85,0.3); }
+        .action-cell { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+        .action-cell .btn { white-space: nowrap; }
+        a.nav-item { text-decoration: none; }
+        button.nav-item {
+            width: 100%; background: none; border: 1px solid transparent;
+            font-family: inherit; text-align: left;
+        }
+        #apiErrorBanner {
+            display: none; margin-bottom: 1rem; padding: 12px 16px;
+            border-radius: 12px; background: rgba(255,42,85,0.12);
+            border: 1px solid rgba(255,42,85,0.35); color: #ff8a9f; font-size: 0.9rem;
+        }
+
+        /* Settings Form */
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-muted); font-weight: 500; }
+        .form-control {
+            width: 100%; padding: 12px 16px; border-radius: 12px;
+            background: rgba(0,0,0,0.3); border: 1px solid var(--border-light);
+            color: white; font-family: 'JetBrains Mono', monospace; font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-control:focus { outline: none; border-color: var(--primary); }
+
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); } 70% { box-shadow: 0 0 0 6px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Tag UI styles */
+        .tag-container {
+            display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+            padding: 10px; border: 1px solid var(--border-light); border-radius: 8px;
+            background: rgba(0,0,0,0.3); min-height: 50px;
+        }
+        .tag-item {
+            background: rgba(255, 0, 85, 0.2); border: 1px solid rgba(255, 0, 85, 0.4);
+            color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .tag-item span { cursor: pointer; color: var(--danger); font-weight: bold; }
+        .tag-item span:hover { color: #ff4444; }
+        .input-group { display: flex; gap: 8px; }
+        .input-group .form-control { flex: 1; }
+        .input-group button { padding: 0 15px; border-radius: 8px; background: rgba(0,255,136,0.2); border: 1px solid rgba(0,255,136,0.4); color: #00ff88; cursor: pointer; }
+
+        /* Auth overlay */
+        #authOverlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: rgba(5,5,5,0.95); backdrop-filter: blur(12px);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .auth-box {
+            width: 100%; max-width: 420px; padding: 2.5rem;
+            background: var(--bg-surface); border: 1px solid var(--border-light);
+            border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        .auth-box h2 { font-size: 1.4rem; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-light); }
+        .sidebar-footer .nav-item { font-size: 0.9rem; }
+        .guide-step { padding: 16px 20px; border-left: 3px solid var(--primary); margin-bottom: 12px; background: rgba(0,240,255,0.04); border-radius: 0 12px 12px 0; }
+        .guide-step strong { color: var(--primary); display: block; margin-bottom: 6px; }
+        .guide-step code { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; background: rgba(0,0,0,0.4); padding: 2px 8px; border-radius: 6px; }
+        .license-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.1); overflow: hidden; margin-top: 12px; }
+        .license-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--success)); transition: width 0.4s; }
+        .license-bar-fill.warn { background: linear-gradient(90deg, #f59e0b, var(--danger)); }
+
+        /* Header clock + approval notifications */
+        .header-right { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+        .header-status-group { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; min-width: 0; }
+        .header-clock {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: var(--text-muted);
+            padding: 6px 12px; border-radius: 10px; background: rgba(0,0,0,0.25);
+            border: 1px solid var(--border-light); white-space: nowrap;
+        }
+        .approval-notify-area { display: flex; flex-direction: column; gap: 8px; max-width: 360px; width: 100%; }
+        .approval-toast {
+            padding: 12px 14px; border-radius: 12px; background: rgba(245,158,11,0.12);
+            border: 1px solid rgba(245,158,11,0.45); color: var(--text-main);
+            font-size: 0.85rem; line-height: 1.45; animation: slideInNotify 0.35s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35); cursor: pointer;
+        }
+        .approval-toast strong { color: #fbbf24; display: block; margin-bottom: 4px; }
+        .approval-toast .toast-meta { color: var(--text-muted); font-size: 0.78rem; margin-top: 4px; }
+        .toast-actions {
+            display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px;
+        }
+        .toast-actions .btn-approve-lg, .toast-actions .btn-reject-lg { min-height: 42px; font-size: 0.88rem; }
+        @media (max-width: 960px) {
+            .toast-actions { display: grid; }
+            .approval-toast { padding: 14px 16px; }
+        }
+        @keyframes slideInNotify { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Mobile */
+        .mobile-menu-btn {
+            display: none; position: fixed; top: 14px; left: 14px; z-index: 1001;
+            width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--border-light);
+            background: rgba(15,15,20,0.9); color: var(--text-main); cursor: pointer;
+            align-items: center; justify-content: center;
+        }
+        .sidebar-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 998;
+        }
+        @media (max-width: 960px) {
+            .mobile-menu-btn { display: flex; }
+            .sidebar {
+                position: fixed; left: 0; top: 0; height: 100vh; width: min(280px, 88vw);
+                transform: translateX(-105%); transition: transform 0.3s ease; z-index: 999;
+            }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar-overlay.open { display: block; }
+            .main-content { padding: 4.5rem 1rem 2rem; }
+            .header { margin-bottom: 1.5rem; flex-direction: column; align-items: stretch; }
+            .page-title { font-size: 1.5rem; }
+            .header-right { justify-content: stretch; }
+            .header-status-group { align-items: stretch; max-width: 100%; }
+            .approval-notify-area { max-width: 100%; }
+            .stats-grid { grid-template-columns: 1fr; gap: 1rem; }
+            .stat-value { font-size: 2.2rem; }
+            .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .custom-table { min-width: 1000px; }
+            .action-cell { flex-direction: row; flex-wrap: wrap; }
+        }
+        @media (max-width: 480px) {
+            .auth-box { margin: 1rem; padding: 1.5rem; }
+            .header-clock { font-size: 0.75rem; }
+            #mailDetailModal { padding: 1.2rem; }
+        }
+
+        /* ── 모바일 승인 카드 UI ── */
+        .desktop-table-wrap { display: block; }
+        .approval-cards { display: none; flex-direction: column; gap: 12px; }
+        .approval-cards-empty {
+            text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.95rem;
+        }
+        .approval-card {
+            background: rgba(10, 10, 16, 0.85);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 16px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .approval-card.status-pending { border-color: rgba(245,158,11,0.35); }
+        .approval-card-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 10px; margin-bottom: 10px;
+        }
+        .approval-card-type {
+            font-size: 0.78rem; font-weight: 600; color: var(--primary);
+            background: rgba(0,240,255,0.1); padding: 4px 10px; border-radius: 8px;
+        }
+        .approval-card-title {
+            font-size: 1.05rem; font-weight: 600; color: var(--text-main);
+            line-height: 1.4; word-break: break-all; margin-bottom: 8px;
+        }
+        .approval-card-meta {
+            font-size: 0.82rem; color: var(--text-muted); line-height: 1.5;
+        }
+        .approval-card-meta span { display: block; }
+        .approval-card-detail {
+            margin: 10px 0; padding: 10px 12px; border-radius: 10px;
+            background: rgba(0,0,0,0.25); font-size: 0.8rem;
+        }
+        .approval-card-actions {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            margin-top: 14px;
+        }
+        .btn-approve-lg, .btn-reject-lg {
+            min-height: 48px; border-radius: 12px; border: none;
+            font-family: inherit; font-size: 1rem; font-weight: 600;
+            cursor: pointer; touch-action: manipulation;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: transform 0.15s, opacity 0.15s;
+        }
+        .btn-approve-lg:active, .btn-reject-lg:active { transform: scale(0.97); }
+        .btn-approve-lg {
+            background: linear-gradient(135deg, rgba(0,240,255,0.35), rgba(0,200,180,0.25));
+            color: var(--primary); border: 1px solid rgba(0,240,255,0.45);
+        }
+        .btn-reject-lg {
+            background: rgba(255,42,85,0.15); color: var(--danger);
+            border: 1px solid rgba(255,42,85,0.4);
+        }
+        .btn-approve-lg:disabled, .btn-reject-lg:disabled { opacity: 0.5; cursor: wait; }
+
+        /* 모바일 하단 네비게이션 */
+        .mobile-bottom-nav {
+            display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 900;
+            background: rgba(8, 8, 12, 0.95); backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border-light);
+            padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+            grid-template-columns: 1fr 1fr; gap: 8px;
+        }
+        .mobile-bottom-nav button {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 4px; padding: 10px 8px; border-radius: 12px; border: 1px solid transparent;
+            background: transparent; color: var(--text-muted); font-family: inherit;
+            font-size: 0.75rem; font-weight: 500; cursor: pointer; position: relative;
+            touch-action: manipulation; min-height: 52px;
+        }
+        .mobile-bottom-nav button.active {
+            color: var(--primary); background: rgba(0,240,255,0.08);
+            border-color: rgba(0,240,255,0.2);
+        }
+        .mobile-bottom-nav button svg { width: 22px; height: 22px; }
+        .nav-badge {
+            position: absolute; top: 4px; right: calc(50% - 28px);
+            min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+            background: var(--danger); color: #fff; font-size: 0.65rem; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .filter-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+        .filter-chips .btn { flex: 1; min-width: 0; justify-content: center; min-height: 44px; }
+
+        /* Floating alerts & Mail logs details modal */
+        @keyframes floatPulse {
+            0% { box-shadow: 0 10px 30px rgba(0, 240, 255, 0.2); }
+            50% { box-shadow: 0 10px 30px rgba(255, 42, 85, 0.4); transform: scale(1.02); }
+            100% { box-shadow: 0 10px 30px rgba(0, 240, 255, 0.2); }
+        }
+        .float-pulse {
+            animation: floatPulse 2s infinite ease-in-out;
+        }
+
+        select.form-control, select.form-control option {
+            background-color: #0f0f14 !important;
+            color: #ffffff !important;
+        }
+
+        @media (max-width: 960px) {
+            .desktop-table-wrap { display: none !important; }
+            .mobile-only-cards { display: flex !important; flex-direction: column; gap: 12px; }
+            #tab-settings .glass-panel { max-width: 100% !important; padding: 1.25rem !important; }
+            .desktop-table-wrap.approval-table-wrap { display: none; }
+            .approval-cards { display: flex; }
+            .mobile-bottom-nav { display: grid; }
+            .main-content { padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px)); }
+            #appRoot .status-indicator { font-size: 0.8rem; padding: 6px 12px; }
+            #floatingAlertBadge {
+                bottom: calc(75px + env(safe-area-inset-bottom, 0px)) !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button type="button" class="mobile-menu-btn" id="mobileMenuBtn" aria-label="메뉴" onclick="toggleMobileNav()">
+        <i data-lucide="menu"></i>
+    </button>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeMobileNav()"></div>
+    <!-- 관리자 로그인 -->
+    <div id="authOverlay">
+        <div class="auth-box glass-panel">
+            <h2><i data-lucide="shield-check"></i> OKSOOHT 관리자</h2>
+            <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.95rem;">마스터 비밀번호로 로그인하세요. (기본: oksooht2026)</p>
+            <div class="form-group">
+                <input type="password" id="loginPassword" class="form-control" placeholder="마스터 비밀번호" onkeypress="if(event.key==='Enter')adminLogin()">
+            </div>
+            <button id="loginBtn" class="btn primary" style="width:100%;justify-content:center;padding:14px;" onclick="adminLogin()">로그인</button>
+            <p id="loginError" style="color:var(--danger);margin-top:12px;font-size:0.85rem;display:none;">비밀번호가 올바르지 않습니다.</p>
+            <p id="loginStatus" style="color:var(--text-muted);margin-top:12px;font-size:0.85rem;display:none;">로그인 확인 중...</p>
+            <p style="color:var(--text-muted);margin-top:16px;font-size:0.8rem;text-align:center;">
+                공식 URL: <a href="https://oksooht-security-admin.vercel.app" style="color:var(--primary);">oksooht-security-admin.vercel.app</a>
+            </p>
+        </div>
+    </div>
+
+    <div class="dashboard-container" id="appRoot" style="display:none;">
+        <aside class="sidebar" id="mainSidebar">
+            <div class="brand">
+                <i data-lucide="shield-check" class="brand-icon"></i> OKSOOHT
+            </div>
+            <nav class="nav-menu" id="mainNav">
+                <button type="button" class="nav-item active" data-tab="dashboard">
+                    <i data-lucide="activity"></i> 관제 대시보드
+                </button>
+                <button type="button" class="nav-item" data-tab="approvals">
+                    <i data-lucide="check-square"></i> 결재 / 승인함
+                </button>
+                <button type="button" class="nav-item" data-tab="mail-logs">
+                    <i data-lucide="mail"></i> 메일 감시 로그
+                </button>
+                <button type="button" class="nav-item" data-tab="settings">
+                    <i data-lucide="settings"></i> 글로벌 정책
+                </button>
+                <button type="button" class="nav-item" data-tab="license">
+                    <i data-lucide="key"></i> 라이선스
+                </button>
+                <button type="button" class="nav-item" data-tab="guide">
+                    <i data-lucide="book-open"></i> 프로그램 · 사용법
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button type="button" class="nav-item" onclick="adminLogout()" style="color:var(--danger);">
+                    <i data-lucide="log-out"></i> 로그아웃
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <div>
+                    <h1 class="page-title">실시간 보안 센터</h1>
+                    <p style="color: var(--text-muted); margin-top: 5px;">전사적 보안 현황을 실시간으로 모니터링합니다.</p>
+                </div>
+                <div class="header-right">
+                    <div class="header-status-group">
+                        <div id="headerClock" class="header-clock">--</div>
+                        <div id="approvalNotifyArea" class="approval-notify-area"></div>
+                    </div>
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        서버 연결됨 (Vercel Edge)
+                    </div>
+                </div>
+            </header>
+
+            <div id="apiErrorBanner" style="display:none; margin: 15px 0; padding: 15px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; font-weight: 500; font-size: 0.95rem; text-align: center;"></div>
+
+            <!-- DASHBOARD TAB -->
+            <div id="tab-dashboard" class="data-section">
+                <div class="stats-grid">
+                    <div class="glass-panel stat-card primary" style="cursor:pointer;" onclick="switchTab('license')" title="라이선스 관리로 이동">
+                        <i data-lucide="key" class="stat-icon"></i>
+                        <div class="stat-label">등록된 PC (라이선스)</div>
+                        <div class="stat-value" id="registeredPcs">0</div>
+                        <div style="font-size:0.82rem;color:var(--text-muted);margin-top:6px;">온라인 <span id="onlinePcsSub" style="color:var(--success)">0</span>대</div>
+                    </div>
+                    <div class="glass-panel stat-card" style="border-color:rgba(0,255,136,0.25);">
+                        <i data-lucide="monitor" class="stat-icon" style="color:var(--success)"></i>
+                        <div class="stat-label">온라인 에이전트</div>
+                        <div class="stat-value" id="onlinePcs" style="background:linear-gradient(to right,var(--success),#8affff);-webkit-background-clip:text;">0</div>
+                        <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;">최근 5분 내 서버 접속</div>
+                    </div>
+                    <div class="glass-panel stat-card danger">
+                        <i data-lucide="shield-alert" class="stat-icon"></i>
+                        <div class="stat-label">오늘 차단된 위협</div>
+                        <div class="stat-value" id="blockedToday">0</div>
+                    </div>
+                    <div class="glass-panel stat-card" style="border-color: rgba(245,158,11,0.4); cursor:pointer;" onclick="openPendingApprovals()" title="승인 대기 목록 보기">
+                        <i data-lucide="clock" class="stat-icon" style="color:#f59e0b"></i>
+                        <div class="stat-label">승인 대기</div>
+                        <div class="stat-value" id="pendingApprovals" style="color:#f59e0b">0</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel" style="padding: 1.25rem 1.5rem; margin-top: 2rem; margin-bottom: 2rem; border-color: rgba(0, 240, 255, 0.15); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i data-lucide="shield" style="color: var(--primary); width: 22px; height: 22px;"></i>
+                        <div>
+                            <strong style="color: var(--text-main); font-size: 1rem; display: block;">현재 파일 감시 대상 확장자</strong>
+                            <span style="color: var(--text-muted); font-size: 0.82rem;">이 확장자들의 파일은 외부 반출 시 차단 및 승인 요청이 발생합니다. (수정은 '글로벌 정책' 탭에서 가능)</span>
+                        </div>
+                    </div>
+                    <div id="dashBlockedExtsList" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                        <span style="color:var(--text-muted); font-size:0.9rem;">로딩 중...</span>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="check-square" style="color: var(--primary)"></i> USB 승인 요청 (연결 · 파일 이동)</h2>
+                    <button class="btn" onclick="fetchApprovals()"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> 새로고침</button>
+                </div>
+                <div style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 12px; padding: 12px 16px; margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                    USB 연결 및 USB로 파일 복사·이동 시 승인 요청이 등록됩니다. USB 연결 승인 시 드라이브가 다시 보입니다. 승인 시 PC에 <strong>1~2분 이내</strong> 반영됩니다.
+                </div>
+                <div class="glass-panel table-wrap desktop-table-wrap approval-table-wrap" style="overflow: hidden; margin-bottom: 1rem;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>유형 / PC</th>
+                                <th>내용</th>
+                                <th>요청자</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardApprovalBody">
+                            <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">승인 요청 없음</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="dashboardApprovalCards" class="approval-cards" style="margin-bottom: 3rem;"></div>
+
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="alert-triangle" style="color: var(--danger)"></i> 최근 위협 및 보안 로그</h2>
+                    <button class="btn" onclick="fetchLogs()"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> 새로고침</button>
+                </div>
+                <div class="glass-panel" style="margin-bottom: 3rem; overflow: hidden;">
+                    <div id="logList" style="overflow-x: hidden;">
+                        <div style="padding: 40px; text-align: center; color: var(--text-muted);">로그 데이터를 수신 대기 중입니다...</div>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="server"></i> 활성 디바이스 현황</h2>
+                </div>
+                <div class="desktop-table-wrap glass-panel table-wrap" style="overflow-x: auto;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>디바이스명</th>
+                                <th>별명 (닉네임)</th>
+                                <th>MAC 어드레스</th>
+                                <th>내부 IP</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pcTableBody">
+                            <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="pcCards" class="mobile-only-cards" style="display: none; flex-direction: column; gap: 12px; margin-top: 1rem; margin-bottom: 2rem;"></div>
+            </div>
+
+            <div id="tab-approvals" class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="check-square"></i> USB 승인 대기열 (연결 · 파일 이동)</h2>
+                    <div class="filter-chips">
+                        <button class="btn" id="apFilterAll" onclick="setApprovalFilter('all')">전체</button>
+                        <button class="btn primary" id="apFilterPending" onclick="setApprovalFilter('pending')">대기 중</button>
+                        <button class="btn" onclick="fetchApprovals()"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i></button>
+                    </div>
+                </div>
+                <div style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 12px; padding: 12px 16px; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                    <i data-lucide="info" style="width:14px;height:14px;vertical-align:middle;"></i>
+                    USB 연결·파일 이동 시 자동 등록됩니다. USB 연결 승인 시 PC에서 드라이브가 표시됩니다. 승인/거부 시 PC에 <strong>1~2분 이내</strong> 반영됩니다.
+                </div>
+                <div class="glass-panel table-wrap desktop-table-wrap approval-table-wrap" style="overflow: hidden;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th>요청 PC</th>
+                                <th>파일명 / 내용</th>
+                                <th>상세 정보</th>
+                                <th>요청자</th>
+                                <th>상태</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="approvalTableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">요청된 결재 내역이 없습니다.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="approvalCards" class="approval-cards" style="margin-top: 1rem;"></div>
+            </div>
+
+            <!-- MAIL LOGS TAB -->
+            <div id="tab-mail-logs" class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="mail" style="color:var(--primary);"></i> 실시간 메일 감시 로그</h2>
+                    <button class="btn" onclick="fetchMailLogs()"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> 새로고침</button>
+                </div>
+                <div style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 12px; padding: 12px 16px; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                    <i data-lucide="info" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i>
+                    임직원이 외부로 발송한 메일의 상세 로그입니다. 행을 클릭하면 상세 내용을 확인하실 수 있습니다.
+                </div>
+                <!-- FILTERS ROW -->
+                <div class="glass-panel" style="padding: 1rem; margin-bottom: 1.5rem; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center; border: 1px solid var(--border-light); border-radius: 12px;">
+                    <div style="display: none !important; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);"><i data-lucide="globe" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;color:var(--primary);"></i>메일 사이트:</span>
+                        <select id="filterMailSite" class="form-control" style="width: 140px; padding: 6px 12px; font-size: 0.85rem; background: var(--bg-dark); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 8px; cursor: pointer;" onchange="applyMailLogFilters()">
+                            <option value="all">전체</option>
+                            <option value="naver">네이버 메일</option>
+                            <option value="groupware">그룹웨어</option>
+                            <option value="gmail">구글 메일 (Gmail)</option>
+                            <option value="other">기타</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);"><i data-lucide="monitor" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;color:var(--primary);"></i>발송 PC:</span>
+                        <select id="filterMailPc" class="form-control" style="width: 220px; padding: 6px 12px; font-size: 0.85rem; background: var(--bg-dark); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 8px; cursor: pointer;" onchange="applyMailLogFilters()">
+                            <option value="all">전체</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 0.85rem; font-weight: 500; color: var(--text-main);"><i data-lucide="calendar" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;color:var(--primary);"></i>발송 날짜:</span>
+                        <input type="date" id="filterMailDate" class="form-control" style="width: 150px; padding: 6px 12px; font-size: 0.85rem; background: var(--bg-dark); border: 1px solid var(--border-light); color: var(--text-main); border-radius: 8px; cursor: pointer;" onchange="applyMailLogFilters()">
+                    </div>
+                    <button class="btn" style="padding: 6px 12px; font-size: 0.85rem; display: flex; align-items: center; gap: 4px;" onclick="resetMailLogFilters()">
+                        <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i>필터 초기화
+                    </button>
+                </div>
+                <div class="desktop-table-wrap glass-panel table-wrap" style="overflow-x: auto; margin-bottom: 2rem;">
+                    <table class="custom-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 180px;">발송 일시</th>
+                                <th style="width: 150px;">발송 PC / 브라우저</th>
+                                <th style="width: 180px;">받는 사람</th>
+                                <th style="width: 250px;">메일 제목</th>
+                                <th>본문 요약</th>
+                                <th style="width: 180px;">첨부파일</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mailLogsTableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">메일 로그가 없습니다.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="mailLogCards" class="mobile-only-cards" style="display: none; flex-direction: column; gap: 12px; margin-bottom: 2rem;"></div>
+            </div>
+
+            <!-- SETTINGS TAB -->
+            <div id="tab-settings" class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="lock"></i> 관리자 보안 설정</h2>
+                </div>
+                <div class="glass-panel" style="padding: 2rem; max-width: 600px;">
+                    <div class="form-group">
+                        <label>현재 마스터 비밀번호</label>
+                        <input type="password" id="currentPassword" class="form-control" placeholder="현재 비밀번호 입력">
+                    </div>
+                    <div class="form-group">
+                        <label>새 마스터 비밀번호</label>
+                        <input type="password" id="adminPassword" class="form-control" placeholder="새 비밀번호 입력">
+                    </div>
+                    <div class="form-group">
+                        <label>새 마스터 비밀번호 확인</label>
+                        <input type="password" id="adminPasswordConfirm" class="form-control" placeholder="새 비밀번호 재입력">
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 8px;">* 트레이 아이콘 종료, 정책 변경, 프로그램 무력화 시 요구되는 글로벌 비밀번호입니다.</p>
+                    </div>
+                    <div class="form-group" style="margin-top: 30px;">
+                        <label><i data-lucide="shield"></i> 전사 보안 정책 강제 (클라이언트 앱 통제)</label>
+                        <div style="background: rgba(0,255,136,0.1); padding: 15px; border-radius: 8px; border-left: 3px solid var(--success); margin-bottom: 15px;">
+                            <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer;">
+                                <span><i data-lucide="copy" style="width:16px;height:16px;vertical-align:middle;margin-right:5px;"></i> 클립보드 파일 복사 차단</span>
+                                <input type="checkbox" id="policyClipboard">
+                            </label>
+                            <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer;">
+                                <span><i data-lucide="folder-lock" style="width:16px;height:16px;vertical-align:middle;margin-right:5px;"></i> 파일 변경·이동 감시</span>
+                                <input type="checkbox" id="policyFile">
+                            </label>
+                            <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer;">
+                                <span><i data-lucide="mail" style="width:16px;height:16px;vertical-align:middle;margin-right:5px;"></i> 외부 메일 전송 차단</span>
+                                <input type="checkbox" id="policyMail">
+                            </label>
+                            <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                                <span><i data-lucide="usb" style="width:16px;height:16px;vertical-align:middle;margin-right:5px;"></i> USB 외부 저장소 차단</span>
+                                <input type="checkbox" id="policyUsb">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 30px;">
+                        <label>감시 대상 파일 확장자 <span style="font-size: 0.8rem; color: var(--text-muted);">(감지 시 격리·실행차단·로그·승인요청 자동 생성)</span></label>
+                        <div class="input-group">
+                            <input type="text" id="extInput" class="form-control" placeholder="예: exe, dwg, pdf, xlsx" onkeypress="if(event.key==='Enter') addExt()">
+                            <button onclick="addExt()">추가</button>
+                        </div>
+                        <div class="tag-container" id="extTags"></div>
+                    </div>
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>추가 유해 사이트 차단 목록</label>
+                        <div style="background: rgba(255,0,85,0.1); border-left: 3px solid var(--primary); padding: 10px; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted);">
+                            <i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle;"></i> 
+                            기본적으로 앱 내부에 탑재된 <strong>약 15,000개의 글로벌 유해 사이트(도박, 멀웨어 등)</strong>가 자동 차단 중입니다.<br>
+                            이곳에는 기본 데이터베이스 외에 회사에서 자체적으로 추가 차단할 사이트만 등록해 주세요.
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="siteInput" class="form-control" placeholder="예: facebook.com" onkeypress="if(event.key==='Enter') addSite()">
+                            <button onclick="addSite()">추가</button>
+                        </div>
+                        <div class="tag-container" id="siteTags"></div>
+                    </div>
+                    <button class="btn primary" style="margin-top: 20px;" onclick="saveSettings()"><i data-lucide="save"></i> 정책 저장 및 배포</button>
+                    <div id="saveMsg" style="margin-top: 10px; color: var(--success); font-weight: 500; display: none;">✅ 서버에 저장되었습니다. 클라이언트에 5분 이내 반영됩니다.</div>
+
+                    <!-- 자동 업데이트 배포 섹션 -->
+                    <div class="form-group" style="margin-top: 36px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 28px;">
+                        <label style="font-size: 1rem; font-weight: 700; color: var(--accent);"><i data-lucide="refresh-cw" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"></i> 자동 업데이트 배포</label>
+                        <p style="color: var(--text-muted); font-size: 0.83rem; margin: 6px 0 16px;">아래에 새 버전 정보를 입력하고 저장하면, 클라이언트 PC가 다음 하트비트(최대 60초)에 자동으로 다운로드·설치합니다.</p>
+                        <div class="form-group">
+                            <label>새 버전 번호 <span style="color:var(--text-muted);font-size:0.8rem;">(예: 1.2.0)</span></label>
+                            <input type="text" id="updateVersion" class="form-control" placeholder="예: 1.2.0">
+                        </div>
+                        <div class="form-group">
+                            <label>설치파일 다운로드 URL <span style="color:var(--danger);margin-left:3px;">*</span></label>
+                            <input type="url" id="updateUrl" class="form-control" placeholder="https://example.com/OksooSecurity_Setup.exe">
+                        </div>
+                        <div class="form-group">
+                            <label>SHA-256 체크섬 <span style="color:var(--text-muted);font-size:0.8rem;">(선택 — 없으면 검증 생략)</span></label>
+                            <input type="text" id="updateSha256" class="form-control" placeholder="e.g. a1b2c3d4...">
+                        </div>
+                        <div style="display:flex;gap:10px;margin-top:8px;">
+                            <button class="btn primary" onclick="saveUpdateSettings()" style="flex:1;"><i data-lucide="upload-cloud"></i> 업데이트 배포 저장</button>
+                            <button class="btn" onclick="clearUpdateSettings()" style="flex:0 0 auto;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);border-radius:8px;padding:10px 18px;cursor:pointer;"><i data-lucide="x"></i> 초기화</button>
+                        </div>
+                        <div id="updateSaveMsg" style="margin-top:10px;font-weight:500;display:none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LICENSE TAB -->
+            <div id="tab-license" class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="key"></i> 라이선스 관리</h2>
+                    <button class="btn" onclick="loadLicenseData()"><i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> 새로고침</button>
+                </div>
+                <div class="stats-grid" style="margin-bottom:2rem;">
+                    <div class="glass-panel stat-card primary">
+                        <div class="stat-label">등록된 PC</div>
+                        <div class="stat-value" id="licenseUsed">0</div>
+                    </div>
+                    <div class="glass-panel stat-card">
+                        <div class="stat-label">라이선스 한도</div>
+                        <div class="stat-value" id="licenseMax">42</div>
+                    </div>
+                    <div class="glass-panel stat-card" style="border-color:rgba(0,255,136,0.3);">
+                        <div class="stat-label">잔여 슬롯</div>
+                        <div class="stat-value" id="licenseRemain" style="background:linear-gradient(to right,var(--success),#8affff);-webkit-background-clip:text;">42</div>
+                    </div>
+                </div>
+                <div class="glass-panel" style="padding:2rem;max-width:560px;margin-bottom:2rem;">
+                    <div class="form-group">
+                        <label>최대 설치 대수 변경</label>
+                        <input type="number" id="licenseLimitInput" class="form-control" min="1" value="42">
+                        <div class="license-bar"><div class="license-bar-fill" id="licenseBarFill" style="width:0%"></div></div>
+                        <p style="color:var(--text-muted);font-size:0.85rem;margin-top:10px;">한도를 초과한 신규 PC는 등록이 거부됩니다.</p>
+                    </div>
+                    <div class="form-group">
+                        <label>한도 변경 인증</label>
+                        <input type="password" id="licenseAuthPassword" class="form-control" placeholder="한도 저장 시 필요한 비밀번호">
+                    </div>
+                    <button class="btn primary" onclick="saveLicenseLimit()"><i data-lucide="save"></i> 한도 저장</button>
+                    <div id="licenseMsg" style="margin-top:10px;color:var(--success);display:none;">✅ 라이선스 한도가 저장되었습니다.</div>
+                </div>
+                <div class="section-header"><h2 class="section-title"><i data-lucide="monitor"></i> 등록 PC 목록</h2></div>
+                <div class="desktop-table-wrap glass-panel table-wrap" style="overflow-x: auto;">
+                    <table class="custom-table">
+                        <thead><tr><th>호스트명</th><th>별명 (닉네임)</th><th>MAC</th><th>IP</th><th>마지막 접속</th></tr></thead>
+                        <tbody id="licensePcBody">
+                            <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">등록된 PC 없음</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="licensePcCards" class="mobile-only-cards" style="display: none; flex-direction: column; gap: 12px; margin-top: 1rem; margin-bottom: 2rem;"></div>
+            </div>
+
+            <!-- GUIDE TAB -->
+            <div id="tab-guide" class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="book-open"></i> 프로그램 · 관리자 패널 사용법</h2>
+                </div>
+                <div class="glass-panel" style="padding:2rem;max-width:820px;">
+                    <h3 style="margin-bottom:1rem;color:var(--primary);font-size:1.1rem;">📦 PC 보안 프로그램 (직원용)</h3>
+                    <div class="guide-step">
+                        <strong>설치</strong>
+                        관리자가 배포한 <code>OksooSecurity_Setup.exe</code>를 실행해 설치합니다. 설치 후 PC 재부팅 시 트레이(시계 옆)에 아이콘이 표시되면 정상입니다.
+                    </div>
+                    <div class="guide-step">
+                        <strong>일상 사용</strong>
+                        직원은 별도 설정 없이 프로그램을 켜 두기만 하면 됩니다. 창을 닫아도 트레이에서 보안이 계속 동작합니다.
+                    </div>
+                    <div class="guide-step">
+                        <strong>차단 시 알림</strong>
+                        USB 연결, 메일 발송, 차단 확장자 파일 이동 등이 차단되면 화면 오른쪽 아래에 알림이 뜹니다. 「관리자에게 승인을 요청했습니다」 안내 후, 관리자 승인까지 대기합니다.
+                    </div>
+                    <div class="guide-step">
+                        <strong>일시 중지 / 종료</strong>
+                        트레이 아이콘 우클릭 → 「일시 중지」는 관리자 비밀번호 필요, 「종료」도 관리자 인증 후 가능합니다. 일시 중지 시 USB·메일 차단이 해제됩니다.
+                    </div>
+
+                    <h3 style="margin:1.5rem 0 1rem;color:var(--primary);font-size:1.1rem;">🖥 관리자 패널 (관리자용)</h3>
+                    <div class="guide-step">
+                        <strong>로그인</strong>
+                        공식 주소에서 마스터 비밀번호로 로그인합니다. 로그인 후 왼쪽 메뉴로 기능을 이동합니다.
+                    </div>
+                    <div class="guide-step">
+                        <strong>관제 대시보드</strong>
+                        온라인 PC 수, 오늘 차단 건수, 승인 대기 건수를 확인합니다. USB·메일·파일 승인 요청은 표에서 바로 「승인」 또는 「거부」할 수 있습니다.
+                    </div>
+                    <div class="guide-step">
+                    </div>
+                    <div class="guide-step">
+                        <strong>결재 / 승인함</strong>
+                        모든 승인 요청 내역을 유형(🔌 USB / 📧 메일 / 📄 파일)별로 확인하고 처리합니다. 승인 후 PC에 약 1~2분 이내 반영되며, USB·메일은 30분간 허용됩니다.
+                    </div>
+                    <div class="guide-step">
+                        <strong>글로벌 정책</strong>
+                        클립보드·파일 감시·메일·USB 차단 ON/OFF, 차단 확장자, 유해 사이트 목록을 설정하고 「정책 저장 및 배포」를 누르면 전체 PC에 5분 이내 반영됩니다.
+                    </div>
+                    <div class="guide-step">
+                        <strong>라이선스</strong>
+                        등록된 PC 수와 한도(기본 42대)를 확인합니다. 한도 변경은 별도 인증 비밀번호가 필요합니다.
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="빠른 이동">
+        <button type="button" id="mobNavDashboard" onclick="switchTab('dashboard')">
+            <i data-lucide="layout-dashboard"></i>
+            대시보드
+        </button>
+        <button type="button" id="mobNavApprovals" onclick="openPendingApprovals()">
+            <i data-lucide="check-square"></i>
+            승인함
+            <span class="nav-badge" id="mobilePendingBadge" style="display:none">0</span>
+        </button>
+    </nav>
+
+    <script>
+        const API_BASE = 'https://oksooht-security-api.vercel.app/api';
+        const HEADERS = {
+            'Content-Type': 'application/json',
+            'x-api-key': 'oksooht-security-2026'
+        };
+
+        const SESSION_KEY = 'oksooht_admin_session';
+        let pcNicknameMap = new Map();
+        let allMailLogs = [];
+
+        async function updatePcNicknameMap() {
+            try {
+                const res = await fetch(`${API_BASE}/pcs`, { headers: HEADERS });
+                if (res.ok) {
+                    const data = await res.json();
+                    pcNicknameMap.clear();
+                    const list = Array.isArray(data) ? data : (data.pcs || []);
+                    list.forEach(pc => {
+                        const nameVal = pc.username || '';
+                        if (nameVal) {
+                            pcNicknameMap.set(pc.mac_address, nameVal);
+                            pcNicknameMap.set(pc.hostname, nameVal);
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('[Admin] Failed to update PC nickname map:', e);
+            }
+        }
+
+        function saveAdminSession(password) {
+            sessionStorage.setItem(SESSION_KEY, btoa(password));
+        }
+
+        function clearAdminSession() {
+            sessionStorage.removeItem(SESSION_KEY);
+        }
+
+        function getAdminSession() {
+            try {
+                const v = sessionStorage.getItem(SESSION_KEY);
+                return v ? atob(v) : null;
+            } catch (_) { return null; }
+        }
+
+        function isAdminLoggedIn() {
+            return !!getAdminSession();
+        }
+
+        async function verifyAdminPassword(password) {
+            const res = await fetch(`${API_BASE}/admin-login`, {
+                method: 'POST',
+                headers: HEADERS,
+                body: JSON.stringify({ password })
+            });
+            if (res.status === 401) return false;
+            if (!res.ok) throw new Error('login failed');
+            const data = await res.json();
+            return data.ok === true;
+        }
+
+        function showApiError(msg) {
+            const el = document.getElementById('apiErrorBanner');
+            if (!el) return;
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+
+        function clearApiError() {
+            const el = document.getElementById('apiErrorBanner');
+            if (el) el.style.display = 'none';
+        }
+
+        async function adminLogin() {
+            const pw = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            const errEl = document.getElementById('loginError');
+            const statusEl = document.getElementById('loginStatus');
+            errEl.style.display = 'none';
+            statusEl.style.display = 'block';
+            statusEl.textContent = '로그인 확인 중...';
+            btn.disabled = true;
+
+            try {
+                const ok = await verifyAdminPassword(pw);
+                if (ok) {
+                    saveAdminSession(pw);
+                    document.getElementById('authOverlay').style.display = 'none';
+                    document.getElementById('appRoot').style.display = 'flex';
+                    startApp();
+                } else {
+                    errEl.textContent = '비밀번호가 올바르지 않습니다.';
+                    errEl.style.display = 'block';
+                }
+            } catch (e) {
+                errEl.textContent = '서버 연결 실패. API 상태를 확인하세요.';
+                errEl.style.display = 'block';
+            } finally {
+                statusEl.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        function adminLogout() {
+            clearAdminSession();
+            location.href = '/';
+        }
+
+        let activeTab = 'dashboard';
+        let realtimeChannel = null;
+        let sbClient = null;
+        let refreshDebounce = null;
+        let appStarted = false;
+        let knownPendingApprovalIds = new Set();
+        let approvalNotifyInitialized = false;
+        let clockTimer = null;
+
+        function toggleMobileNav() {
+            document.getElementById('mainSidebar')?.classList.toggle('open');
+            document.getElementById('sidebarOverlay')?.classList.toggle('open');
+        }
+
+        function closeMobileNav() {
+            document.getElementById('mainSidebar')?.classList.remove('open');
+            document.getElementById('sidebarOverlay')?.classList.remove('open');
+        }
+
+        function updateHeaderClock() {
+            const el = document.getElementById('headerClock');
+            if (!el) return;
+            el.textContent = new Date().toLocaleString('ko-KR', {
+                year: 'numeric', month: 'numeric', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            });
+        }
+
+        function isUsbApproval(app) {
+            const meta = parseApprovalMeta(app);
+            const type = app.request_type || meta.type || '';
+            if (type === 'usb_connect' || type === 'usb_file_transfer') return true;
+            if (type === 'file_transfer' && String(meta.destination || '').includes('USB')) return true;
+            if ((app.filename || '').startsWith('[USB]')) return true;
+            return false;
+        }
+
+        function filterUsbApprovals(list) {
+            return (list || []).filter(isUsbApproval);
+        }
+
+        function showApprovalToast(app) {
+            const area = document.getElementById('approvalNotifyArea');
+            if (!area) return;
+            const name = formatApprovalFilename(app);
+            const type = app.request_type || parseApprovalMeta(app).type || '';
+            const title = type === 'usb_connect' ? '🔌 USB 연결 승인 요청' : '🔌 USB 파일 이동 승인 요청';
+            const toast = document.createElement('div');
+            toast.className = 'approval-toast';
+            toast.innerHTML = '<strong>' + title + '</strong>' +
+                escHtml(name) +
+                '<div class="toast-meta">' + escHtml(app.pc_name || app.requester || 'PC') +
+                ' · ' + new Date(app.timestamp || Date.now()).toLocaleString('ko-KR') + '</div>' +
+                '<div class="toast-actions" onclick="event.stopPropagation()">' +
+                '<button type="button" class="btn-approve-lg" data-id="' + escHtml(app.id) + '" onclick="handleApprovalClick(this,true);this.closest(\'.approval-toast\')?.remove();">승인</button>' +
+                '<button type="button" class="btn-reject-lg" data-id="' + escHtml(app.id) + '" onclick="handleApprovalClick(this,false);this.closest(\'.approval-toast\')?.remove();">거부</button>' +
+                '</div>';
+            toast.onclick = (e) => {
+                if (e.target.closest('.toast-actions')) return;
+                openPendingApprovals();
+                closeMobileNav();
+                toast.remove();
+            };
+            area.prepend(toast);
+            while (area.children.length > 4) area.lastElementChild?.remove();
+            setTimeout(() => toast.remove(), 15000);
+
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('USB 승인 요청', {
+                    body: `${app.pc_name || 'PC'} — ${name}`,
+                    tag: 'usb-' + app.id
+                });
+            }
+        }
+
+        function processNewApprovalNotifications(approvals) {
+            const pending = filterUsbApprovals(approvals).filter(a => a.status === 'pending');
+            if (!approvalNotifyInitialized) {
+                pending.forEach(a => knownPendingApprovalIds.add(a.id));
+                approvalNotifyInitialized = true;
+                return;
+            }
+            pending.forEach(app => {
+                if (knownPendingApprovalIds.has(app.id)) return;
+                knownPendingApprovalIds.add(app.id);
+                showApprovalToast(app);
+            });
+        }
+
+        function requestBrowserNotifyPermission() {
+            if (!('Notification' in window)) return;
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().catch(() => {});
+            }
+        }
+
+        function scheduleDashboardRefresh() {
+            if (document.visibilityState !== 'visible') return;
+            if (activeTab !== 'dashboard' && activeTab !== 'approvals') return;
+            clearTimeout(refreshDebounce);
+            refreshDebounce = setTimeout(() => fetchDashboard(), 300);
+        }
+
+        async function setupRealtimePush() {
+            teardownRealtimePush();
+            try {
+                const res = await fetch(`${API_BASE}/realtime-config`, { headers: HEADERS });
+                if (!res.ok) return;
+                const cfg = await res.json();
+                if (!cfg.url || !cfg.anonKey) return;
+
+                sbClient = window.supabase.createClient(cfg.url, cfg.anonKey);
+                realtimeChannel = sbClient
+                    .channel(cfg.channel || 'oksooht-admin-notify')
+                    .on('broadcast', { event: 'refresh' }, () => scheduleDashboardRefresh())
+                    .subscribe();
+            } catch (e) {
+                console.warn('[Realtime]', e.message);
+            }
+        }
+
+        function teardownRealtimePush() {
+            if (realtimeChannel && sbClient) {
+                sbClient.removeChannel(realtimeChannel);
+                realtimeChannel = null;
+            }
+        }
+
+        const VALID_TABS = ['dashboard', 'approvals', 'settings', 'license', 'guide', 'mail-logs'];
+
+        function switchTab(tabId, el) {
+            if (!VALID_TABS.includes(tabId)) tabId = 'dashboard';
+            activeTab = tabId;
+            document.querySelectorAll('.nav-item[data-tab]').forEach(n => n.classList.remove('active'));
+            const navEl = el || document.querySelector(`.nav-item[data-tab="${tabId}"]`);
+            if (navEl) navEl.classList.add('active');
+            closeMobileNav();
+            document.querySelectorAll('.data-section').forEach(s => s.classList.remove('active'));
+            const panel = document.getElementById('tab-' + tabId);
+            if (!panel) return;
+            panel.classList.add('active');
+            if (location.hash !== '#' + tabId) {
+                history.replaceState(null, '', '#' + tabId);
+            }
+            const titles = { 
+                dashboard: '실시간 보안 센터', 
+                approvals: '결재 / 승인함', 
+                settings: '글로벌 정책 설정', 
+                license: '라이선스 관리', 
+                guide: '프로그램 · 사용법',
+                'mail-logs': '실시간 메일 감시 로그'
+            };
+            document.querySelector('.page-title').textContent = titles[tabId] || 'OKSOOHT Security';
+            if (tabId === 'settings') loadSettings();
+            if (tabId === 'dashboard' || tabId === 'approvals') fetchDashboard();
+            if (tabId === 'license') loadLicenseData();
+            if (tabId === 'mail-logs') fetchMailLogs();
+            if (tabId === 'dashboard') {
+                lastAlertsCheckedTime = new Date().toISOString();
+                localStorage.setItem('lastAlertsCheckedTime', lastAlertsCheckedTime);
+                const floatUnread = document.getElementById('floatUnreadCount');
+                if (floatUnread) floatUnread.textContent = '0';
+                const badge = document.getElementById('floatingAlertBadge');
+                const pendingCount = parseInt(document.getElementById('floatPendingCount')?.textContent || '0', 10);
+                if (badge) badge.classList.toggle('float-pulse', pendingCount > 0);
+            }
+            if (tabId === 'approvals' && approvalTabFilter === 'pending') {
+                setTimeout(() => highlightPendingApprovals(), 100);
+            }
+            updateMobileBottomNav(tabId);
+            try { if (window.lucide) lucide.createIcons(); } catch (_) {}
+        }
+
+        function updateMobileBottomNav(tabId) {
+            const dash = document.getElementById('mobNavDashboard');
+            const appr = document.getElementById('mobNavApprovals');
+            if (dash) dash.classList.toggle('active', tabId === 'dashboard');
+            if (appr) appr.classList.toggle('active', tabId === 'approvals');
+        }
+
+        function updateMobilePendingBadge(count) {
+            const badge = document.getElementById('mobilePendingBadge');
+            if (!badge) return;
+            const n = count || 0;
+            badge.textContent = n > 99 ? '99+' : String(n);
+            badge.style.display = n > 0 ? 'flex' : 'none';
+        }
+
+        function initTabsFromHash() {
+            const hash = (location.hash || '').replace('#', '');
+            switchTab(VALID_TABS.includes(hash) ? hash : 'dashboard');
+        }
+
+        function setupNavDelegation() {
+            const nav = document.getElementById('mainNav');
+            if (!nav || nav.dataset.bound) return;
+            nav.dataset.bound = '1';
+            nav.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-tab]');
+                if (!btn) return;
+                switchTab(btn.dataset.tab, btn);
+            });
+        }
+
+        function highlightPendingApprovals() {
+            document.querySelectorAll('#approvalTableBody tr').forEach(tr => {
+                tr.style.background = tr.querySelector('.status-pill.pending') ? 'rgba(245,158,11,0.08)' : '';
+            });
+            document.querySelectorAll('.approval-card.status-pending').forEach(card => {
+                card.style.boxShadow = '0 0 0 1px rgba(245,158,11,0.25)';
+            });
+        }
+
+        async function fetchLogs() {
+            await fetchDashboard();
+        }
+
+        function renderLogs(data) {
+            try {
+                const container = document.getElementById('logList');
+                if (!container) return;
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted);">기록된 위협이 없습니다.</div>';
+                    return;
+                }
+                container.innerHTML = data.map(log => {
+                    const pcName = pcNicknameMap.get(log.hostname) || '';
+                    const pcDisplay = pcName ? `${pcName} (${log.hostname})` : log.hostname;
+                    return `
+                    <div class="log-item">
+                        <div class="log-badge ${log.severity === 'critical' ? 'badge-critical' : 'badge-info'}">${escHtml(log.event_type)}</div>
+                        <div class="log-content">
+                            <div class="log-msg">${escHtml(log.message)}</div>
+                            <div class="log-meta">
+                                <span><i data-lucide="monitor" style="width:14px;height:14px;"></i> ${escHtml(pcDisplay)}</span>
+                            </div>
+                        </div>
+                        <div class="log-time">${new Date(log.created_at).toLocaleString()}</div>
+                    </div>
+                `}).join('');
+                lucide.createIcons();
+            } catch (e) { console.error(e); }
+        }
+
+        function renderPcNicknameCell(pc) {
+            const macEnc = encodeURIComponent(pc.mac_address || '');
+            const nick = pc.username || '';
+            return `<td class="nick-cell" style="color: var(--primary);">
+                <div class="nick-view" data-mac="${macEnc}">
+                    <span class="nick-text">${escHtml(nick) || '-'}</span>
+                    <button type="button" class="btn nick-edit-btn" title="별명 수정" onclick="startEditPcNickname(this)">
+                        <i data-lucide="pencil" style="width:14px;height:14px;"></i>
+                    </button>
+                </div>
+                <div class="nick-edit" data-mac="${macEnc}">
+                    <input type="text" class="nick-input" value="${escHtml(nick)}" maxlength="64" placeholder="별명 입력" />
+                    <button type="button" class="btn primary nick-save-btn" onclick="savePcNickname(this)">저장</button>
+                    <button type="button" class="btn nick-cancel-btn" onclick="cancelEditPcNickname(this)">취소</button>
+                </div>
+            </td>`;
+        }
+
+        function nickCellFrom(btn) {
+            return btn.closest('.nick-cell');
+        }
+
+        function startEditPcNickname(btn) {
+            const cell = nickCellFrom(btn);
+            cell.querySelector('.nick-view').style.display = 'none';
+            const edit = cell.querySelector('.nick-edit');
+            edit.style.display = 'flex';
+            const input = edit.querySelector('.nick-input');
+            input.focus();
+            input.select();
+        }
+
+        function cancelEditPcNickname(btn) {
+            const cell = nickCellFrom(btn);
+            cell.querySelector('.nick-view').style.display = '';
+            cell.querySelector('.nick-edit').style.display = 'none';
+        }
+
+        async function savePcNickname(btn) {
+            const cell = nickCellFrom(btn);
+            const mac = decodeURIComponent(cell.querySelector('.nick-edit').dataset.mac || '');
+            const username = cell.querySelector('.nick-input').value.trim();
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/pcs`, {
+                    method: 'PATCH',
+                    headers: HEADERS,
+                    body: JSON.stringify({ mac_address: mac, username })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.error || '저장 실패');
+                cell.querySelector('.nick-text').textContent = username || '-';
+                cancelEditPcNickname(btn);
+            } catch (e) {
+                alert(e.message || '별명 저장에 실패했습니다.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function renderPCs(data) {
+            try {
+                const container = document.getElementById('pcTableBody');
+                if (container) {
+                    if (!data || data.length === 0) {
+                        container.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>';
+                    } else {
+                        container.innerHTML = data.map(pc => {
+                            const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 360000);
+                            return `
+                            <tr>
+                                <td style="font-weight: 500;">${escHtml(pc.hostname)}</td>
+                                ${renderPcNicknameCell(pc)}
+                                <td style="color: var(--text-muted); font-family: monospace;">${escHtml(pc.mac_address)}</td>
+                                <td style="font-family: monospace;">${escHtml(pc.ip_address || '-')}</td>
+                                <td style="color: ${isOnline ? 'var(--success)' : 'var(--text-muted)'}">${isOnline ? '● Online' : '○ Offline'}</td>
+                            </tr>
+                        `}).join('');
+                    }
+                }
+
+                const cardContainer = document.getElementById('pcCards');
+                if (cardContainer) {
+                    if (!data || data.length === 0) {
+                        cardContainer.innerHTML = '<div class="approval-cards-empty">등록된 디바이스가 없습니다.</div>';
+                    } else {
+                        cardContainer.innerHTML = data.map(pc => {
+                            const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 360000);
+                            const macEnc = encodeURIComponent(pc.mac_address || '');
+                            const nick = pc.username || '';
+                            const nicknameView = `
+                                <div class="nick-cell" style="margin-top: 8px;">
+                                    <div class="nick-view" data-mac="${macEnc}" style="display: flex; align-items: center; gap: 6px;">
+                                        <strong style="color: var(--text-muted); font-size: 0.8rem;">별명:</strong> 
+                                        <span class="nick-text" style="color: var(--primary); font-size: 0.85rem; font-weight: 600;">${escHtml(nick) || '-'}</span>
+                                        <button type="button" class="btn nick-edit-btn" title="별명 수정" onclick="startEditPcNickname(this)" style="padding: 2px 6px; font-size: 0.75rem; min-height: auto;">
+                                            <i data-lucide="pencil" style="width:12px;height:12px;"></i>
+                                        </button>
+                                    </div>
+                                    <div class="nick-edit" data-mac="${macEnc}" style="display: none; align-items: center; gap: 6px;">
+                                        <input type="text" class="nick-input" value="${escHtml(nick)}" maxlength="64" placeholder="별명 입력" style="padding: 4px 8px; font-size: 0.8rem; width: 120px;" />
+                                        <button type="button" class="btn primary nick-save-btn" onclick="savePcNickname(this)" style="padding: 4px 8px; font-size: 0.75rem; min-height: auto;">저장</button>
+                                        <button type="button" class="btn nick-cancel-btn" onclick="cancelEditPcNickname(this)" style="padding: 4px 8px; font-size: 0.75rem; min-height: auto;">취소</button>
+                                    </div>
+                                </div>
+                            `;
+                            return `
+                            <div class="approval-card">
+                                <div class="approval-card-header" style="margin-bottom: 6px;">
+                                    <span class="approval-card-type" style="background: rgba(0,240,255,0.1); color: var(--primary);"><i data-lucide="monitor" style="width:12px;height:12px;vertical-align:middle;margin-right:3px;"></i>PC 정보</span>
+                                    <span style="font-size:0.75rem; color: ${isOnline ? 'var(--success)' : 'var(--text-muted)'}">${isOnline ? '● Online' : '○ Offline'}</span>
+                                </div>
+                                <div class="approval-card-title" style="font-size: 1rem; margin-bottom: 6px;">${escHtml(pc.hostname)}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+                                    <div><strong>MAC:</strong> <span style="font-family: monospace;">${escHtml(pc.mac_address)}</span></div>
+                                    <div><strong>최근 IP:</strong> <span style="font-family: monospace;">${escHtml(pc.ip_address || '-')}</span></div>
+                                </div>
+                                ${nicknameView}
+                            </div>
+                            `;
+                        }).join('');
+                    }
+                }
+                lucide.createIcons();
+            } catch (e) { console.error(e); }
+        }
+
+        async function fetchPCs() {
+            await fetchDashboard();
+        }
+
+        let approvalTabFilter = 'all';
+
+        function openPendingApprovals() {
+            approvalTabFilter = 'pending';
+            document.getElementById('apFilterAll')?.classList.remove('primary');
+            document.getElementById('apFilterPending')?.classList.add('primary');
+            switchTab('approvals');
+        }
+
+        function setApprovalFilter(filter) {
+            approvalTabFilter = filter;
+            document.getElementById('apFilterAll')?.classList.toggle('primary', filter === 'all');
+            document.getElementById('apFilterPending')?.classList.toggle('primary', filter === 'pending');
+            fetchDashboard();
+        }
+
+        function escHtml(s) {
+            return String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/\u003c/g, '&lt;')
+                .replace(/\u003e/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function parseApprovalMeta(app) {
+            const details = app.details && typeof app.details === 'object' ? app.details : {};
+            const raw = app.recipient || details.recipient || '';
+            let meta = {};
+            if (typeof raw === 'object' && raw !== null) meta = raw;
+            else if (typeof raw === 'string' && raw.trim().startsWith('{')) {
+                try { meta = JSON.parse(raw); } catch (_) { meta = { value: raw }; }
+            } else if (raw) {
+                meta = { value: raw };
+            }
+            return { ...meta, ...details, type: app.request_type || meta.type || details.type };
+        }
+
+        function formatApprovalFilename(app) {
+            const meta = parseApprovalMeta(app);
+            let fname = app.filename || '';
+            if (fname.startsWith('[FILE]')) {
+                const inner = meta.filename || meta.filePath || fname.replace(/^\[FILE\]\s*/, '');
+                const base = String(inner).split(/[/\\]/).pop();
+                return `[FILE] ${base}`;
+            }
+            if (fname.startsWith('[MAIL]')) {
+                if (meta.provider) return `[MAIL] ${meta.provider} 웹메일 접속`;
+                if (meta.email) return `[MAIL] ${meta.email}`;
+                if (meta.windowTitle) return `[MAIL] ${meta.windowTitle}`;
+            }
+            if (fname.startsWith('[USB]')) return fname;
+            if (fname.includes('\\') || fname.includes('/')) {
+                return fname.split(/[/\\]/).pop();
+            }
+            return fname || '-';
+        }
+
+        function formatApprovalDetail(app) {
+            const meta = parseApprovalMeta(app);
+            const type = meta.type || app.request_type || '';
+            const lines = [];
+
+            if (type === 'usb_file_transfer' || (type === 'file_transfer' && meta.destination && String(meta.destination).includes('USB'))) {
+                if (meta.destination) lines.push(['동작', meta.destination]);
+                if (meta.drive) lines.push(['USB 드라이브', meta.drive + ':']);
+                if (meta.ext) lines.push(['확장자', `.${meta.ext}`]);
+                if (meta.filePath) lines.push(['USB 경로', meta.filePath]);
+                if (meta.quarantinedTo) lines.push(['격리 위치', meta.quarantinedTo]);
+            } else if (type === 'file_transfer' || meta.filePath) {
+                if (meta.destination) lines.push(['동작', meta.destination]);
+                if (meta.ext) lines.push(['확장자', `.${meta.ext}`]);
+                if (meta.filePath) lines.push(['경로', meta.filePath]);
+                if (meta.quarantinedTo) lines.push(['격리 위치', meta.quarantinedTo]);
+            } else if (type === 'webmail_access' || meta.provider) {
+                lines.push(['웹메일', meta.provider || '-']);
+                if (meta.windowTitle) lines.push(['창 제목', meta.windowTitle]);
+                if (Array.isArray(meta.domains) && meta.domains.length) {
+                    lines.push(['도메인', meta.domains.slice(0, 3).join(', ')]);
+                }
+            } else if (type === 'mail_send' || meta.email) {
+                lines.push(['수신', meta.email || '-']);
+                if (meta.subject) lines.push(['제목', String(meta.subject).slice(0, 60)]);
+                if (meta.attachment) lines.push(['프로세스', meta.attachment]);
+            } else if (type === 'usb_connect' || meta.drive) {
+                lines.push(['드라이브', meta.drive || '-']);
+                if (meta.fs) lines.push(['파일시스템', meta.fs]);
+            } else if (meta.value) {
+                lines.push(['내용', meta.value]);
+            } else if (meta.reason) {
+                lines.push(['사유', meta.reason]);
+            }
+
+            if (!lines.length) return '<span style="color:var(--text-muted)">-</span>';
+            return `<div class="approval-detail">${lines.map(([k, v]) =>
+                `<div class="detail-line"><strong>${escHtml(k)}:</strong> ${escHtml(v)}</div>`
+            ).join('')}</div>`;
+        }
+
+        function getApprovalTypeTag(app) {
+            const meta = parseApprovalMeta(app);
+            if (app.filename?.startsWith('[USB]') || meta.type === 'usb_file_transfer' || meta.type === 'usb_connect') {
+                if (meta.type === 'usb_connect' || (app.filename || '').includes('드라이브 연결')) return '🔌 USB 연결';
+                return '🔌 USB 파일';
+            }
+            if (app.filename?.startsWith('[FILE]') || meta.type === 'file_transfer') return '📄 파일';
+            if (app.filename?.startsWith('[MAIL]') || meta.type === 'mail_send' || meta.type === 'webmail_access') {
+                if (meta.type === 'webmail_access' || meta.provider) return '📧 웹메일';
+                return '📧 메일';
+            }
+            return '📋 요청';
+        }
+
+        function renderApprovalRows(data, containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const cardsId = containerId === 'dashboardApprovalBody' ? 'dashboardApprovalCards' : 'approvalCards';
+            const showDetail = containerId !== 'dashboardApprovalBody';
+            if (!data || data.length === 0) {
+                const cols = containerId === 'dashboardApprovalBody' ? 5 : 6;
+                container.innerHTML = `<tr><td colspan="${cols}" style="text-align: center; padding: 40px; color: var(--text-muted);">요청된 결재 내역이 없습니다.</td></tr>`;
+                renderApprovalCards([], cardsId, showDetail);
+                return;
+            }
+
+            container.innerHTML = data.map(app => {
+                const statusClass = app.status === 'pending' ? 'pending' : app.status === 'approved' ? 'approved' : 'rejected';
+                const statusLabel = app.status === 'pending' ? '대기 중' : app.status === 'approved' ? '승인됨' : '거부됨';
+                const statusHtml = `<span class="status-pill ${statusClass}">${statusLabel}</span>`;
+
+                const typeTag = getApprovalTypeTag(app);
+                const displayName = escHtml(formatApprovalFilename(app));
+                const detailHtml = formatApprovalDetail(app);
+                const safeId = escHtml(app.id);
+
+                const pcNick = pcNicknameMap.get(app.pc_name) || pcNicknameMap.get(app.requester) || '';
+                const pcDisplay = pcNick ? `${pcNick} (${app.pc_name || app.requester})` : (app.pc_name || app.requester || 'PC');
+
+                let actionHtml = app.status === 'pending' ? `
+                    <div class="action-cell">
+                        <button class="btn primary" data-id="${safeId}" onclick="handleApprovalClick(this, true)" style="padding:4px 10px;font-size:0.8rem">승인</button>
+                        <button class="btn" data-id="${safeId}" onclick="handleApprovalClick(this, false)" style="padding:4px 10px;font-size:0.8rem;color:var(--danger);border-color:var(--danger)">거부</button>
+                    </div>
+                ` : `<span style="color:var(--text-muted);font-size:0.82rem">${app.resolved_at ? new Date(app.resolved_at).toLocaleString('ko-KR') : ''}<br>처리됨</span>`;
+
+                if (containerId === 'dashboardApprovalBody') {
+                    return `
+                    <tr>
+                        <td class="col-pc"><strong>${typeTag}</strong> ${escHtml(pcDisplay)}<br><span style="font-size:0.8rem;color:var(--text-muted)">${escHtml(app.ip_address || '-')}</span></td>
+                        <td class="col-content" style="color:var(--primary)">${displayName}</td>
+                        <td style="font-family:monospace;font-size:0.85rem">${escHtml(app.requester || '-')}</td>
+                        <td class="col-status">${statusHtml}</td>
+                        <td class="col-action">${actionHtml}</td>
+                    </tr>`;
+                }
+
+                return `
+                <tr>
+                    <td class="col-pc"><strong>${typeTag}</strong> ${escHtml(pcDisplay)}<br><span style="font-size:0.8rem;color:var(--text-muted)">${escHtml(app.ip_address || '-')}</span></td>
+                    <td class="col-content" style="color:var(--primary)">${displayName}</td>
+                    <td class="col-detail">${detailHtml}</td>
+                    <td class="col-user" style="font-family:monospace;font-size:0.85rem">${escHtml(app.requester || '-')}</td>
+                    <td class="col-status">${statusHtml}</td>
+                    <td class="col-action">${actionHtml}</td>
+                </tr>`;
+            }).join('');
+            renderApprovalCards(data, cardsId, showDetail);
+        }
+
+        function renderApprovalCards(data, containerId, showDetail) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="approval-cards-empty">승인 요청 없음</div>';
+                return;
+            }
+            container.innerHTML = data.map(app => {
+                const statusClass = app.status === 'pending' ? 'pending' : app.status === 'approved' ? 'approved' : 'rejected';
+                const statusLabel = app.status === 'pending' ? '대기 중' : app.status === 'approved' ? '승인됨' : '거부됨';
+                const typeTag = getApprovalTypeTag(app);
+                const displayName = escHtml(formatApprovalFilename(app));
+                const detailHtml = showDetail ? formatApprovalDetail(app) : '';
+                const safeId = escHtml(app.id);
+                const actions = app.status === 'pending' ? `
+                    <div class="approval-card-actions">
+                        <button type="button" class="btn-approve-lg" data-id="${safeId}" onclick="handleApprovalClick(this, true)">✓ 승인</button>
+                        <button type="button" class="btn-reject-lg" data-id="${safeId}" onclick="handleApprovalClick(this, false)">✕ 거부</button>
+                    </div>
+                ` : `<div style="margin-top:10px;font-size:0.82rem;color:var(--text-muted)">${app.resolved_at ? new Date(app.resolved_at).toLocaleString('ko-KR') + ' 처리됨' : '처리됨'}</div>`;
+
+                const pcNick = pcNicknameMap.get(app.pc_name) || pcNicknameMap.get(app.requester) || '';
+                const pcDisplay = pcNick ? `${pcNick} (${app.pc_name || app.requester})` : (app.pc_name || app.requester || '알 수 없음');
+
+                return `
+                <article class="approval-card status-${statusClass}">
+                    <div class="approval-card-header">
+                        <span class="approval-card-type">${typeTag}</span>
+                        <span class="status-pill ${statusClass}">${statusLabel}</span>
+                    </div>
+                    <div class="approval-card-title">${displayName}</div>
+                    <div class="approval-card-meta">
+                        <span>PC: ${escHtml(pcDisplay)}</span>
+                        <span>IP: ${escHtml(app.ip_address || '-')}</span>
+                        <span>요청자: ${escHtml(app.requester || '-')}</span>
+                    </div>
+                    ${detailHtml ? '<div class="approval-card-detail">' + detailHtml + '</div>' : ''}
+                    ${actions}
+                </article>`;
+            }).join('');
+        }
+
+        function handleApprovalClick(btn, approved) {
+            if (btn.disabled) return;
+            const card = btn.closest('.approval-card-actions') || btn.closest('.toast-actions');
+            if (card) {
+                card.querySelectorAll('button').forEach(b => { b.disabled = true; });
+            }
+            handleApproval(btn.getAttribute('data-id'), approved, btn);
+        }
+
+        async function fetchApprovals() {
+            await fetchDashboard();
+        }
+
+        async function handleApproval(id, approved, btn) {
+            try {
+                const res = await fetch(`${API_BASE}/approvals?id=${id}`, {
+                    method: 'PUT',
+                    headers: HEADERS,
+                    body: JSON.stringify({ approved })
+                });
+                if (res.ok) {
+                    fetchDashboard();
+                } else {
+                    alert('처리 중 오류가 발생했습니다.');
+                    if (btn) {
+                        const card = btn.closest('.approval-card-actions');
+                        if (card) card.querySelectorAll('button').forEach(b => { b.disabled = false; });
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                if (btn) {
+                    const card = btn.closest('.approval-card-actions');
+                    if (card) card.querySelectorAll('button').forEach(b => { b.disabled = false; });
+                }
+            }
+        }
+
+        let blockedExtsList = [];
+        let blockedSitesList = [];
+
+        function renderTags() {
+            const extContainer = document.getElementById('extTags');
+            if (extContainer) {
+                const list = Array.isArray(blockedExtsList) ? blockedExtsList : [];
+                extContainer.innerHTML = list.map(t => 
+                    `<div class="tag-item">${t} <span onclick="removeExt('${t}')">×</span></div>`
+                ).join('');
+            }
+            
+            const siteContainer = document.getElementById('siteTags');
+            if (siteContainer) {
+                const list = Array.isArray(blockedSitesList) ? blockedSitesList : [];
+                siteContainer.innerHTML = list.map(t => 
+                    `<div class="tag-item">${t} <span onclick="removeSite('${t}')">×</span></div>`
+                ).join('');
+            }
+        }
+
+        function addExt() {
+            const val = document.getElementById('extInput').value.trim().toLowerCase();
+            if (val && !blockedExtsList.includes(val)) { blockedExtsList.push(val); renderTags(); }
+            document.getElementById('extInput').value = '';
+        }
+        function removeExt(val) { blockedExtsList = blockedExtsList.filter(t => t !== val); renderTags(); }
+
+        function addSite() {
+            const val = document.getElementById('siteInput').value.trim().toLowerCase();
+            if (val && !blockedSitesList.includes(val)) { blockedSitesList.push(val); renderTags(); }
+            document.getElementById('siteInput').value = '';
+        }
+        function removeSite(val) { blockedSitesList = blockedSitesList.filter(t => t !== val); renderTags(); }
+
+        function updateDashboardExtsList() {
+            const el = document.getElementById('dashBlockedExtsList');
+            if (!el) return;
+            const list = Array.isArray(blockedExtsList) ? blockedExtsList : [];
+            if (list.length === 0) {
+                el.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">지정된 확장자 없음</span>';
+                return;
+            }
+            el.innerHTML = list.map(ext => 
+                `<span style="background: rgba(0, 240, 255, 0.1); color: var(--primary); border: 1px solid rgba(0, 240, 255, 0.25); padding: 4px 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; font-family: 'JetBrains Mono', monospace;">.${escHtml(ext)}</span>`
+            ).join('');
+        }
+
+        async function loadSettings() {
+            try {
+                const extContainer = document.getElementById('extTags');
+                if (extContainer) extContainer.innerHTML = '<span style="color:var(--text-muted); font-size:0.9rem;">로딩 중...</span>';
+                clearApiError();
+                
+                const res = await fetch(`${API_BASE}/settings`, { headers: HEADERS });
+                if (!res.ok) {
+                    showApiError(`설정 로드 실패: HTTP ${res.status}`);
+                    if (extContainer) extContainer.innerHTML = `<span style="color:var(--danger)">HTTP ${res.status} 로드 실패</span>`;
+                    return;
+                }
+                const data = await res.json();
+                const safeData = data || {};
+                
+                if (safeData.blocked_extensions) {
+                    if (Array.isArray(safeData.blocked_extensions)) {
+                        blockedExtsList = safeData.blocked_extensions;
+                    } else if (typeof safeData.blocked_extensions === 'string') {
+                        try {
+                            const parsed = JSON.parse(safeData.blocked_extensions);
+                            blockedExtsList = Array.isArray(parsed) ? parsed : safeData.blocked_extensions.split(',').map(s => s.trim());
+                        } catch(e) {
+                            blockedExtsList = safeData.blocked_extensions.split(',').map(s => s.trim());
+                        }
+                    } else {
+                        blockedExtsList = [];
+                    }
+                } else {
+                    blockedExtsList = ['exe', 'bat', 'cmd', 'ps1', 'sh', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'pdf', 'hwp', 'dwg', 'dxf', 'dwf'];
+                }
+                
+                if (safeData.blocked_sites) {
+                    if (Array.isArray(safeData.blocked_sites)) {
+                        blockedSitesList = safeData.blocked_sites;
+                    } else if (typeof safeData.blocked_sites === 'string') {
+                        try {
+                            const parsed = JSON.parse(safeData.blocked_sites);
+                            blockedSitesList = Array.isArray(parsed) ? parsed : safeData.blocked_sites.split(',').map(s => s.trim());
+                        } catch(e) {
+                            blockedSitesList = safeData.blocked_sites.split(',').map(s => s.trim());
+                        }
+                    } else {
+                        blockedSitesList = [];
+                    }
+                } else {
+                    blockedSitesList = [];
+                }
+                
+                // 보안 정책 셋업
+                const clipEl = document.getElementById('policyClipboard');
+                if (clipEl) clipEl.checked = safeData.clipboard_monitoring_enabled !== false;
+                
+                const fileEl = document.getElementById('policyFile');
+                if (fileEl) fileEl.checked = safeData.process_monitoring_enabled !== false;
+                
+                const mailEl = document.getElementById('policyMail');
+                if (mailEl) mailEl.checked = safeData.mail_blocking_enabled !== false;
+                
+                const usbEl = document.getElementById('policyUsb');
+                if (usbEl) usbEl.checked = safeData.usb_blocking_enabled === true;
+                
+                
+                // 업데이트 설정 불러오기
+                const updateVersionEl = document.getElementById('updateVersion');
+                const updateUrlEl = document.getElementById('updateUrl');
+                const updateSha256El = document.getElementById('updateSha256');
+                if (updateVersionEl) updateVersionEl.value = safeData.update_version || '';
+                if (updateUrlEl) updateUrlEl.value = safeData.update_url || '';
+                if (updateSha256El) updateSha256El.value = safeData.update_sha256 || '';
+
+                renderTags();
+                updateDashboardExtsList();
+            } catch (e) {
+                console.error(e);
+                showApiError("설정 로드 오류: " + e.message);
+                const extContainer = document.getElementById('extTags');
+                if (extContainer) extContainer.innerHTML = `<span style="color:var(--danger)">오류: ${escHtml(e.message)}</span>`;
+            }
+        }
+
+        async function saveSettings() {
+            const currPwd = document.getElementById('currentPassword').value;
+            const newPwd = document.getElementById('adminPassword').value;
+            const confirmPwd = document.getElementById('adminPasswordConfirm').value;
+            
+            const exts = blockedExtsList;
+            const sites = blockedSitesList;
+            
+            if (newPwd) {
+                if (newPwd !== confirmPwd) {
+                    alert('새 비밀번호가 일치하지 않습니다.');
+                    return;
+                }
+                if (!currPwd) {
+                    alert('비밀번호를 변경하려면 현재 비밀번호를 입력해야 합니다.');
+                    return;
+                }
+            }
+            
+            try {
+                if (newPwd) {
+                    const pwdRes = await fetch(`${API_BASE}/settings`, { 
+                        method: 'PUT', 
+                        headers: HEADERS, 
+                        body: JSON.stringify({ key: 'admin_password', value: newPwd, current_password: currPwd }) 
+                    });
+                    if (!pwdRes.ok) {
+                        const errData = await pwdRes.json();
+                        alert('비밀번호 변경 실패: ' + (errData.error || '현재 비밀번호가 틀렸습니다.'));
+                        return;
+                    }
+                }
+                
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'blocked_extensions', value: JSON.stringify(exts) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'blocked_sites', value: JSON.stringify(sites) }) });
+                
+                // 보안 정책 업데이트
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'clipboard_monitoring_enabled', value: JSON.stringify(document.getElementById('policyClipboard').checked) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'process_monitoring_enabled', value: JSON.stringify(document.getElementById('policyFile').checked) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'mail_blocking_enabled', value: JSON.stringify(document.getElementById('policyMail').checked) }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'usb_blocking_enabled', value: JSON.stringify(document.getElementById('policyUsb').checked) }) });
+
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'smtp_ports', value: JSON.stringify([25,465,587,993,995,110,143]) }) });
+
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminPasswordConfirm').value = '';
+                
+                updateDashboardExtsList();
+
+                document.getElementById('saveMsg').style.display = 'block';
+                setTimeout(() => document.getElementById('saveMsg').style.display = 'none', 3000);
+            } catch (e) { console.error(e); alert('저장 실패'); }
+        }
+
+        async function saveUpdateSettings() {
+            const version = (document.getElementById('updateVersion')?.value || '').trim();
+            const url     = (document.getElementById('updateUrl')?.value || '').trim();
+            const sha256  = (document.getElementById('updateSha256')?.value || '').trim();
+            const msgEl   = document.getElementById('updateSaveMsg');
+
+            if (!version || !url) {
+                alert('버전 번호와 다운로드 URL은 필수입니다.');
+                return;
+            }
+            if (!/^https?:\/\/.+\.exe$/i.test(url)) {
+                alert('URL은 http(s)://로 시작하고 .exe로 끝나야 합니다.');
+                return;
+            }
+
+            try {
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_version', value: version }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_url',     value: url }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_sha256',  value: sha256 || '' }) });
+
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.color = 'var(--success)';
+                    msgEl.textContent = `✅ v${version} 배포 저장 완료 — 클라이언트가 다음 하트비트에 자동 설치합니다.`;
+                    setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
+                }
+            } catch (e) {
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.color = 'var(--danger)';
+                    msgEl.textContent = '❌ 저장 실패: ' + e.message;
+                }
+            }
+        }
+
+        async function clearUpdateSettings() {
+            if (!confirm('업데이트 배포 설정을 초기화하시겠습니까? 클라이언트가 더 이상 업데이트를 받지 않습니다.')) return;
+            try {
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_version', value: '' }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_url',     value: '' }) });
+                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_sha256',  value: '' }) });
+                document.getElementById('updateVersion').value = '';
+                document.getElementById('updateUrl').value = '';
+                document.getElementById('updateSha256').value = '';
+                const msgEl = document.getElementById('updateSaveMsg');
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.color = 'var(--text-muted)';
+                    msgEl.textContent = '업데이트 배포 설정이 초기화되었습니다.';
+                    setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+                }
+            } catch (e) { alert('초기화 실패: ' + e.message); }
+        }
+
+        function applyStats(data, approvals) {
+            if (!data) return;
+            const onlineEl = document.getElementById('onlinePcs');
+            const registeredEl = document.getElementById('registeredPcs');
+            const onlineSubEl = document.getElementById('onlinePcsSub');
+            const blockedEl = document.getElementById('blockedToday');
+            const pendingEl = document.getElementById('pendingApprovals');
+            const pendingCount = filterUsbApprovals(data.approvals || approvals).filter(a => a.status === 'pending').length;
+            if (onlineEl) onlineEl.textContent = data.onlinePcs ?? 0;
+            if (registeredEl) registeredEl.textContent = data.registeredPcs ?? data.totalPcs ?? 0;
+            if (onlineSubEl) onlineSubEl.textContent = data.onlinePcs ?? 0;
+            if (blockedEl) blockedEl.textContent = data.blockedToday ?? 0;
+            if (pendingEl) pendingEl.textContent = pendingCount;
+            updateMobilePendingBadge(pendingCount);
+            
+            // Update floating badge pending approvals count
+            const floatPending = document.getElementById('floatPendingCount');
+            if (floatPending) floatPending.textContent = pendingCount;
+
+            // 라이선스 탭 숫자도 대시보드 갱신 시 동기화
+            const licenseUsed = document.getElementById('licenseUsed');
+            const licenseRemain = document.getElementById('licenseRemain');
+            const licenseMax = document.getElementById('licenseMax');
+            if (licenseUsed && data.registeredPcs != null) {
+                const used = data.registeredPcs;
+                const limit = parseInt(licenseMax?.textContent, 10) || 42;
+                licenseUsed.textContent = used;
+                if (licenseRemain) licenseRemain.textContent = Math.max(0, limit - used);
+            }
+        }
+
+        async function fetchDashboard() {
+            try {
+                await updatePcNicknameMap();
+                const res = await fetch(`${API_BASE}/dashboard`, { headers: HEADERS });
+                if (!res.ok) {
+                    showApiError('서버 데이터를 불러오지 못했습니다. (HTTP ' + res.status + ') 새로고침 후 다시 시도하세요.');
+                    return;
+                }
+                clearApiError();
+                const data = await res.json();
+                if (data.stats?.registeredPcs == null && data.pcs) {
+                    data.stats = data.stats || {};
+                    data.stats.registeredPcs = data.pcs.length;
+                }
+                applyStats(data.stats, data.approvals);
+                renderLogs(data.logs || []);
+                updateUnreadAlertsCount(data.logs || []);
+                renderPCs(data.pcs || []);
+                renderLicensePcs(data.pcs || []);
+                const usbApprovals = filterUsbApprovals(data.approvals || []);
+                processNewApprovalNotifications(usbApprovals);
+                renderApprovalRows(usbApprovals.filter(a => a.status === 'pending'), 'dashboardApprovalBody');
+                const filtered = approvalTabFilter === 'pending'
+                    ? usbApprovals.filter(a => a.status === 'pending')
+                    : usbApprovals;
+                renderApprovalRows(filtered, 'approvalTableBody');
+                if (approvalTabFilter === 'pending') highlightPendingApprovals();
+            } catch (e) {
+                console.error('[Dashboard]', e);
+                showApiError('서버 연결 실패: ' + (e.message || 'network error'));
+            }
+        }
+
+        async function fetchStats() {
+            await fetchDashboard();
+        }
+
+        function renderLicensePcs(data) {
+            const tbody = document.getElementById('licensePcBody');
+            if (tbody) {
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">등록된 PC 없음</td></tr>';
+                } else {
+                    tbody.innerHTML = data.map(pc => `
+                        <tr>
+                            <td>${escHtml(pc.hostname || '-')}</td>
+                            ${renderPcNicknameCell(pc)}
+                            <td style="font-family:monospace;font-size:0.85rem;color:var(--text-muted)">${escHtml(pc.mac_address || '-')}</td>
+                            <td style="font-family:monospace">${escHtml(pc.ip_address || '-')}</td>
+                            <td style="font-size:0.85rem;color:var(--text-muted)">${pc.last_seen ? new Date(pc.last_seen).toLocaleString() : '-'}</td>
+                        </tr>`).join('');
+                }
+            }
+
+            const cardsContainer = document.getElementById('licensePcCards');
+            if (cardsContainer) {
+                if (!data || data.length === 0) {
+                    cardsContainer.innerHTML = '<div class="approval-cards-empty">등록된 PC 없음</div>';
+                } else {
+                    cardsContainer.innerHTML = data.map(pc => {
+                        const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 360000);
+                        const macEnc = encodeURIComponent(pc.mac_address || '');
+                        const nick = pc.username || '';
+                        const nicknameView = `
+                            <div class="nick-cell" style="margin-top: 8px;">
+                                <div class="nick-view" data-mac="${macEnc}" style="display: flex; align-items: center; gap: 6px;">
+                                    <strong style="color: var(--text-muted); font-size: 0.8rem;">별명:</strong> 
+                                    <span class="nick-text" style="color: var(--primary); font-size: 0.85rem; font-weight: 600;">${escHtml(nick) || '-'}</span>
+                                    <button type="button" class="btn nick-edit-btn" title="별명 수정" onclick="startEditPcNickname(this)" style="padding: 2px 6px; font-size: 0.75rem; min-height: auto;">
+                                        <i data-lucide="pencil" style="width:12px;height:12px;"></i>
+                                    </button>
+                                </div>
+                                <div class="nick-edit" data-mac="${macEnc}" style="display: none; align-items: center; gap: 6px;">
+                                    <input type="text" class="nick-input" value="${escHtml(nick)}" maxlength="64" placeholder="별명 입력" style="padding: 4px 8px; font-size: 0.8rem; width: 120px;" />
+                                    <button type="button" class="btn primary nick-save-btn" onclick="savePcNickname(this)" style="padding: 4px 8px; font-size: 0.75rem; min-height: auto;">저장</button>
+                                    <button type="button" class="btn nick-cancel-btn" onclick="cancelEditPcNickname(this)" style="padding: 4px 8px; font-size: 0.75rem; min-height: auto;">취소</button>
+                                </div>
+                            </div>
+                        `;
+                        return `
+                        <div class="approval-card">
+                            <div class="approval-card-header" style="margin-bottom: 6px;">
+                                <span class="approval-card-type" style="background: rgba(0,255,136,0.1); color: var(--success);"><i data-lucide="monitor" style="width:12px;height:12px;vertical-align:middle;margin-right:3px;"></i>PC 정보</span>
+                                <span style="font-size:0.75rem; color: ${isOnline ? 'var(--success)' : 'var(--text-muted)'}">${isOnline ? '● Online' : '○ Offline'}</span>
+                            </div>
+                            <div class="approval-card-title" style="font-size: 1rem; margin-bottom: 6px;">${escHtml(pc.hostname || '-')}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.55;">
+                                <div><strong>MAC:</strong> <span style="font-family: monospace;">${escHtml(pc.mac_address || '-')}</span></div>
+                                <div><strong>최근 IP:</strong> <span style="font-family: monospace;">${escHtml(pc.ip_address || '-')}</span></div>
+                                <div><strong>접속 시간:</strong> <span>${pc.last_seen ? new Date(pc.last_seen).toLocaleString() : '-'}</span></div>
+                            </div>
+                            ${nicknameView}
+                        </div>
+                        `;
+                    }).join('');
+                }
+            }
+            lucide.createIcons();
+        }
+
+        async function loadLicenseData() {
+            try {
+                const [pcsRes, setRes] = await Promise.all([
+                    fetch(`${API_BASE}/pcs`, { headers: HEADERS }),
+                    fetch(`${API_BASE}/settings`, { headers: HEADERS })
+                ]);
+                let pcs = [];
+                if (pcsRes.ok) {
+                    pcs = await pcsRes.json();
+                } else {
+                    console.warn('[License] /pcs 실패 HTTP', pcsRes.status);
+                    // 대시보드 API fallback
+                    try {
+                        const dashRes = await fetch(`${API_BASE}/dashboard`, { headers: HEADERS });
+                        if (dashRes.ok) {
+                            const dash = await dashRes.json();
+                            pcs = dash.pcs || [];
+                        }
+                    } catch (_) {}
+                }
+                const settings = setRes.ok ? await setRes.json() : {};
+                const limit = parseInt(settings.license_limit, 10) || 42;
+                const used = pcs.length || 0;
+                const remain = Math.max(0, limit - used);
+                const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+
+                document.getElementById('licenseUsed').textContent = used;
+                document.getElementById('licenseMax').textContent = limit;
+                document.getElementById('licenseRemain').textContent = remain;
+                document.getElementById('licenseLimitInput').value = limit;
+                const bar = document.getElementById('licenseBarFill');
+                bar.style.width = pct + '%';
+                bar.classList.toggle('warn', pct >= 80);
+
+                renderLicensePcs(pcs);
+                if (!pcs.length && !pcsRes.ok) {
+                    const tbody = document.getElementById('licensePcBody');
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger);">PC 목록을 불러오지 못했습니다. 새로고침을 눌러 주세요. (HTTP ' + pcsRes.status + ')</td></tr>';
+                    }
+                }
+            } catch (e) {
+                console.error('[License]', e);
+                const tbody = document.getElementById('licensePcBody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--danger);">PC 목록 로드 오류: ' + escHtml(e.message || 'network') + '</td></tr>';
+                }
+            }
+        }
+
+        const LICENSE_LIMIT_AUTH_HASH = '77b30e22e5f59172e970161102eca0b186b9700df0ccee008b12d6e1404fc7a6';
+
+        async function sha256(text) {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+            return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function saveLicenseLimit() {
+            const limit = parseInt(document.getElementById('licenseLimitInput').value, 10);
+            if (!limit || limit < 1) { alert('1 이상의 숫자를 입력하세요.'); return; }
+            const authPw = document.getElementById('licenseAuthPassword').value;
+            if (!authPw) { alert('한도 변경 인증 비밀번호를 입력하세요.'); return; }
+            const hash = await sha256(authPw);
+            if (hash !== LICENSE_LIMIT_AUTH_HASH) {
+                alert('인증 비밀번호가 올바르지 않습니다.');
+                document.getElementById('licenseAuthPassword').value = '';
+                return;
+            }
+            try {
+                const res = await fetch(`${API_BASE}/settings`, {
+                    method: 'PUT', headers: HEADERS,
+                    body: JSON.stringify({ key: 'license_limit', value: limit })
+                });
+                if (res.ok) {
+                    document.getElementById('licenseAuthPassword').value = '';
+                    document.getElementById('licenseMsg').style.display = 'block';
+                    setTimeout(() => document.getElementById('licenseMsg').style.display = 'none', 3000);
+                    loadLicenseData();
+                } else alert('저장 실패');
+            } catch (e) { alert('서버 연결 오류'); }
+        }
+
+        function startApp() {
+            if (appStarted) {
+                fetchDashboard();
+                return;
+            }
+            appStarted = true;
+            setupNavDelegation();
+            initTabsFromHash();
+            updateHeaderClock();
+            if (clockTimer) clearInterval(clockTimer);
+            clockTimer = setInterval(updateHeaderClock, 1000);
+            requestBrowserNotifyPermission();
+            fetchDashboard();
+            loadSettings();
+            setupRealtimePush();
+            try { if (window.lucide) lucide.createIcons(); } catch (_) {}
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible' && (activeTab === 'dashboard' || activeTab === 'approvals')) {
+                    fetchDashboard();
+                }
+            });
+            window.addEventListener('hashchange', () => {
+                const hash = location.hash.replace('#', '');
+                if (VALID_TABS.includes(hash) && hash !== activeTab) {
+                    switchTab(hash);
+                }
+            });
+            setInterval(() => {
+                if (document.visibilityState === 'visible' && (activeTab === 'dashboard' || activeTab === 'approvals')) {
+                    fetchDashboard();
+                }
+            }, 60000);
+        }
+
+        let lastAlertsCheckedTime = localStorage.getItem('lastAlertsCheckedTime') || new Date(Date.now() - 24*3600*1000).toISOString();
+
+        function updateUnreadAlertsCount(logs) {
+            if (activeTab === 'dashboard') {
+                lastAlertsCheckedTime = new Date().toISOString();
+                localStorage.setItem('lastAlertsCheckedTime', lastAlertsCheckedTime);
+            }
+            
+            const unreadLogs = logs.filter(log => {
+                const isThreat = log.severity === 'critical' || log.severity === 'warning';
+                return isThreat && log.created_at > lastAlertsCheckedTime;
+            });
+            
+            const count = unreadLogs.length;
+            const floatUnread = document.getElementById('floatUnreadCount');
+            if (floatUnread) floatUnread.textContent = count;
+            
+            const pendingCount = parseInt(document.getElementById('floatPendingCount')?.textContent || '0', 10);
+            
+            const badge = document.getElementById('floatingAlertBadge');
+            if (badge) {
+                const hasAlerts = count > 0;
+                badge.style.borderColor = hasAlerts ? 'var(--danger)' : 'var(--primary)';
+                badge.classList.toggle('float-pulse', pendingCount > 0 || count > 0);
+            }
+        }
+
+        async function fetchMailLogs() {
+            try {
+                await updatePcNicknameMap();
+                const res = await fetch(`${API_BASE}/logs?event_type=mail_send_audit&limit=500`, { headers: HEADERS });
+                if (!res.ok) {
+                    showApiError('메일 로그를 가져오는데 실패했습니다.');
+                    return;
+                }
+                clearApiError();
+                const logs = await res.json();
+                allMailLogs = logs;
+                populatePcFilterOptions(logs);
+                applyMailLogFilters();
+            } catch (e) {
+                console.error(e);
+                showApiError('메일 로그 로드 중 오류 발생: ' + e.message);
+            }
+        }
+
+        function populatePcFilterOptions(logs) {
+            const pcSelect = document.getElementById('filterMailPc');
+            if (!pcSelect) return;
+            const currentSelected = pcSelect.value;
+            pcSelect.innerHTML = '<option value="all">전체</option>';
+            const uniqueHosts = [...new Set(logs.map(log => log.hostname).filter(Boolean))];
+            uniqueHosts.sort().forEach(host => {
+                const pcName = pcNicknameMap.get(host) || '';
+                const display = pcName ? `${pcName} (${host})` : host;
+                const opt = document.createElement('option');
+                opt.value = host;
+                opt.textContent = display;
+                pcSelect.appendChild(opt);
+            });
+            if (uniqueHosts.includes(currentSelected)) {
+                pcSelect.value = currentSelected;
+            } else {
+                pcSelect.value = 'all';
+            }
+        }
+
+        function applyMailLogFilters() {
+            const siteFilter = document.getElementById('filterMailSite').value;
+            const pcFilter = document.getElementById('filterMailPc').value;
+            const dateFilter = document.getElementById('filterMailDate').value;
+            
+            let filteredLogs = allMailLogs;
+            
+            if (siteFilter !== 'all') {
+                filteredLogs = filteredLogs.filter(log => {
+                    const details = log.details || {};
+                    const provider = (details.provider || details.channel || '').toLowerCase();
+                    const host = (details.mail_host || '').toLowerCase();
+                    if (siteFilter === 'naver') {
+                        return provider.includes('naver') || host.includes('naver');
+                    } else if (siteFilter === 'groupware') {
+                        return provider.includes('groupware') || provider.includes('daou') || host.includes('daouoffice');
+                    } else if (siteFilter === 'gmail') {
+                        return provider.includes('gmail') || provider.includes('google') || host.includes('google') || host.includes('gmail');
+                    } else if (siteFilter === 'other') {
+                        const isNaver = provider.includes('naver') || host.includes('naver');
+                        const isGw = provider.includes('groupware') || provider.includes('daou') || host.includes('daouoffice');
+                        const isGmail = provider.includes('gmail') || provider.includes('google') || host.includes('google') || host.includes('gmail');
+                        return !isNaver && !isGw && !isGmail;
+                    }
+                    return true;
+                });
+            }
+            if (pcFilter !== 'all') {
+                filteredLogs = filteredLogs.filter(log => log.hostname === pcFilter);
+            }
+            if (dateFilter) {
+                filteredLogs = filteredLogs.filter(log => {
+                    const logDate = new Date(log.created_at).toISOString().split('T')[0];
+                    return logDate === dateFilter;
+                });
+            }
+            renderMailLogsList(filteredLogs);
+        }
+
+        function resetMailLogFilters() {
+            document.getElementById('filterMailSite').value = 'all';
+            document.getElementById('filterMailPc').value = 'all';
+            document.getElementById('filterMailDate').value = '';
+            applyMailLogFilters();
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function renderMailLogsList(logs) {
+            const tbody = document.getElementById('mailLogsTableBody');
+            if (tbody) {
+                if (!logs || logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">메일 로그가 없습니다.</td></tr>';
+                } else {
+                    tbody.innerHTML = logs.map(log => {
+                        const details = log.details || {};
+                        const browser = details.browser || '알 수 없음';
+                        const sender = details.sender || '-';
+                        const recipients = Array.isArray(details.recipients) ? details.recipients.join(', ') : (details.recipients || '-');
+                        const subject = details.subject || '-';
+                        const bodyPreview = details.bodyPreview || '-';
+                        
+                        const attachments = details.attachments || [];
+                        let attachmentHtml = '<span style="color:var(--text-muted)">없음</span>';
+                        if (attachments.length > 0) {
+                            attachmentHtml = attachments.map(att => {
+                                const name = att.filename || att.name || '첨부파일';
+                                const size = att.size ? ` (${formatBytes(att.size)})` : '';
+                                return `<div style="color:var(--primary); font-size:0.8rem; display:flex; align-items:center; gap:4px; margin-bottom:2px;"><i data-lucide="paperclip" style="width:12px;height:12px;"></i>${escHtml(name)}${size}</div>`;
+                            }).join('');
+                        }
+                        
+                        const pcName = pcNicknameMap.get(log.hostname) || '';
+                        const pcDisplay = pcName ? `${pcName} (${log.hostname})` : log.hostname;
+                        const safeLogJson = escHtml(JSON.stringify(log));
+
+                        return `
+                        <tr style="cursor:pointer;" onclick="openMailDetail(${safeLogJson})">
+                            <td style="font-family:'JetBrains Mono', monospace; font-size:0.8rem; color:var(--text-muted);">${new Date(log.created_at).toLocaleString()}</td>
+                            <td><strong>${escHtml(pcDisplay)}</strong><br><span style="font-size:0.78rem;color:var(--text-muted);">${escHtml(browser)}</span></td>
+                            <td style="color:var(--secondary-glow); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escHtml(recipients)}">${escHtml(recipients)}</td>
+                            <td style="font-weight:500; color:var(--text-main); max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escHtml(subject)}">${escHtml(subject)}</td>
+                            <td style="color:var(--text-muted); font-size:0.85rem; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(bodyPreview)}</td>
+                            <td>${attachmentHtml}</td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+
+            const cardsContainer = document.getElementById('mailLogCards');
+            if (cardsContainer) {
+                if (!logs || logs.length === 0) {
+                    cardsContainer.innerHTML = '<div class="approval-cards-empty">메일 로그가 없습니다.</div>';
+                } else {
+                    cardsContainer.innerHTML = logs.map(log => {
+                        const details = log.details || {};
+                        const browser = details.browser || '알 수 없음';
+                        const recipients = Array.isArray(details.recipients) ? details.recipients.join(', ') : (details.recipients || '-');
+                        const subject = details.subject || '-';
+                        const bodyPreview = details.bodyPreview || '-';
+                        const attachments = details.attachments || [];
+                        let attachmentHtml = '';
+                        if (attachments.length > 0) {
+                            attachmentHtml = `
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-light);">
+                                    ${attachments.map(att => {
+                                        const name = att.filename || att.name || '첨부파일';
+                                        const size = att.size ? ` (${formatBytes(att.size)})` : '';
+                                        return `<div style="color:var(--primary); font-size:0.78rem; display:flex; align-items:center; gap:4px; margin-bottom:2px;"><i data-lucide="paperclip" style="width:12px;height:12px;"></i>${escHtml(name)}${size}</div>`;
+                                    }).join('')}
+                                </div>
+                            `;
+                        }
+                        const pcName = pcNicknameMap.get(log.hostname) || '';
+                        const pcDisplay = pcName ? `${pcName} (${log.hostname})` : log.hostname;
+                        const safeLogJson = escHtml(JSON.stringify(log));
+
+                        return `
+                        <div class="approval-card" style="cursor: pointer;" onclick="openMailDetail(${safeLogJson})">
+                            <div class="approval-card-header" style="margin-bottom: 6px;">
+                                <span class="approval-card-type" style="background: rgba(112, 0, 255, 0.1); color: #b070ff;"><i data-lucide="mail" style="width:12px;height:12px;vertical-align:middle;margin-right:3px;"></i>메일 발송</span>
+                                <span style="font-family:'JetBrains Mono'; font-size:0.75rem; color:var(--text-muted);">${new Date(log.created_at).toLocaleString()}</span>
+                            </div>
+                            <div class="approval-card-title" style="font-size: 0.95rem; margin-bottom: 6px;">${escHtml(subject)}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">
+                                <strong>PC:</strong> ${escHtml(pcDisplay)} (${escHtml(browser)})
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <strong>수신:</strong> <span style="color: var(--primary);">${escHtml(recipients)}</span>
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); background: rgba(0,0,0,0.15); padding: 8px; border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${escHtml(bodyPreview)}
+                            </div>
+                            ${attachmentHtml}
+                        </div>
+                        `;
+                    }).join('');
+                }
+            }
+            lucide.createIcons();
+        }
+
+        // 구버전 renderMailLogs 호환을 위해 정의 유지
+        function renderMailLogs(logs) {
+            allMailLogs = logs;
+            populatePcFilterOptions(logs);
+            applyMailLogFilters();
+        }
+
+        function openMailDetail(log) {
+            const details = log.details || {};
+            const attachments = details.attachments || [];
+            const recipients = Array.isArray(details.recipients) ? details.recipients.join(', ') : (details.recipients || '-');
+            
+            let attachListHtml = '<span style="color:var(--text-muted)">없음</span>';
+            if (attachments.length > 0) {
+                attachListHtml = attachments.map(att => {
+                    const name = att.filename || att.name || '첨부파일';
+                    const size = att.size ? ` (${formatBytes(att.size)})` : '';
+                    return `<div style="background:rgba(255,255,255,0.03); padding:8px; border-radius:8px; border:1px solid var(--border-light); display:flex; align-items:center; gap:8px;"><i data-lucide="file" style="color:var(--primary);"></i><span>${escHtml(name)} ${size}</span></div>`;
+                }).join('');
+            }
+
+            const pcName = pcNicknameMap.get(log.hostname) || '';
+            const pcDisplay = pcName && pcName !== log.hostname ? `${log.hostname} (${pcName})` : log.hostname;
+
+            const html = `
+                <div><strong>발송 일시:</strong> <span style="font-family:'JetBrains Mono';">${new Date(log.created_at).toLocaleString()}</span></div>
+                <div><strong>발송 PC:</strong> <span>${escHtml(pcDisplay)}</span></div>
+                <div><strong>브라우저:</strong> <span>${escHtml(details.browser || '-')}</span></div>
+                <div><strong>보낸 사람:</strong> <span>${escHtml(details.sender || '-')}</span></div>
+                <div><strong>받는 사람:</strong> <span style="color:var(--primary); word-break:break-all;">${escHtml(recipients)}</span></div>
+                <div style="border-top:1px solid var(--border-light); padding-top:10px; margin-top:5px;">
+                    <strong>메일 제목:</strong>
+                    <div style="font-weight:600; font-size:1.05rem; margin-top:4px; word-break:break-all;">${escHtml(details.subject || '-')}</div>
+                </div>
+                <div style="border-top:1px solid var(--border-light); padding-top:10px;">
+                    <strong>메일 본문 요약:</strong>
+                    <div style="background:rgba(0,0,0,0.2); padding:12px; border-radius:10px; border:1px solid var(--border-light); margin-top:6px; white-space:pre-wrap; word-break:break-all; max-height:200px; overflow-y:auto; font-size:0.9rem; line-height:1.5;">${escHtml(details.bodyPreview || '-')}</div>
+                </div>
+                <div style="border-top:1px solid var(--border-light); padding-top:10px;">
+                    <strong>첨부파일 목록 (${attachments.length}개):</strong>
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:6px;">${attachListHtml}</div>
+                </div>
+            `;
+            
+            document.getElementById('mailDetailContent').innerHTML = html;
+            document.getElementById('mailDetailOverlay').style.display = 'block';
+            document.getElementById('mailDetailModal').style.display = 'block';
+            lucide.createIcons();
+        }
+
+        function closeMailDetailModal() {
+            document.getElementById('mailDetailOverlay').style.display = 'none';
+            document.getElementById('mailDetailModal').style.display = 'none';
+        }
+
+        if (isAdminLoggedIn()) {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('appRoot').style.display = 'flex';
+            startApp();
+        }
+    </script>
+
+    <!-- Floating Alert Badge -->
+    <div id="floatingAlertBadge" class="glass-panel" onclick="openPendingApprovals()" style="position:fixed; bottom:20px; right:20px; z-index:999; padding:12px 18px; border-color:var(--primary); display:flex; gap:15px; align-items:center; cursor:pointer; box-shadow:0 10px 30px rgba(0,240,255,0.2); transition:transform 0.3s, border-color 0.3s; border-radius:18px;">
+        <div style="display:flex; align-items:center; gap:8px; border-right:1px solid var(--border-light); padding-right:12px;">
+            <i data-lucide="check-square" style="color:#fbbf24; width:20px; height:20px;"></i>
+            <span style="font-size:0.85rem; color:var(--text-muted);">결재 대기</span>
+            <strong id="floatPendingCount" style="color:#fbbf24; font-size:1.1rem; font-family:'JetBrains Mono';">0</strong>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <i data-lucide="bell" style="color:var(--primary); width:20px; height:20px;"></i>
+            <span style="font-size:0.85rem; color:var(--text-muted);">새 알림</span>
+            <strong id="floatUnreadCount" style="color:var(--primary); font-size:1.1rem; font-family:'JetBrains Mono';">0</strong>
+        </div>
+    </div>
+
+    <!-- Mail Logs Detail Modal -->
+    <div id="mailDetailOverlay" onclick="closeMailDetailModal()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; backdrop-filter:blur(5px);"></div>
+    <div id="mailDetailModal" class="glass-panel" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:10000; width:90%; max-width:600px; padding:2rem; max-height:85vh; overflow-y:auto; border-color:var(--primary); border-radius:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; border-bottom:1px solid var(--border-light); padding-bottom:0.8rem;">
+            <h3 style="font-size:1.2rem; color:var(--primary); display:flex; align-items:center; gap:8px;"><i data-lucide="mail"></i> 메일 상세 로그</h3>
+            <button class="btn" onclick="closeMailDetailModal()" style="padding:4px 8px;">✕ 닫기</button>
+        </div>
+        <div id="mailDetailContent" style="display:flex; flex-direction:column; gap:12px; font-size:0.95rem;">
+            <!-- Filled dynamically -->
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OKSOOHT 메일 UIA 테스트</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Malgun Gothic, sans-serif;
+      background: #0f1419;
+      color: #e7ecf3;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #243044;
+      background: #151c27;
+    }
+    header h1 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    header p { font-size: 13px; color: #93a4b8; line-height: 1.5; }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px 20px;
+      border-bottom: 1px solid #243044;
+      background: #121820;
+    }
+    button {
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover { background: #273449; }
+    button.primary { background: #2563eb; border-color: #2563eb; }
+    button.primary:hover { background: #1d4ed8; }
+    .status {
+      margin-left: auto;
+      font-size: 12px;
+      color: #94a3b8;
+      align-self: center;
+    }
+    .status .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 6px;
+    }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: 0;
+    }
+    .panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: 1px solid #243044;
+    }
+    .panel:last-child { border-right: none; }
+    .panel h2 {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      background: #151c27;
+      border-bottom: 1px solid #243044;
+      color: #cbd5e1;
+    }
+    .panel-body {
+      flex: 1;
+      overflow: auto;
+      padding: 12px 16px;
+    }
+    .log-item {
+      background: #1a2332;
+      border: 1px solid #2a3648;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .log-item .time { font-size: 11px; color: #64748b; margin-bottom: 6px; }
+    .log-item .msg { font-size: 14px; font-weight: 600; color: #38bdf8; margin-bottom: 8px; }
+    .field { font-size: 12px; color: #cbd5e1; margin-bottom: 4px; word-break: break-all; }
+    .field b { color: #94a3b8; font-weight: 600; }
+    .empty { color: #64748b; font-size: 13px; padding: 20px 0; text-align: center; }
+    .debug-item {
+      font-size: 11px;
+      font-family: Consolas, monospace;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #a5b4c8;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #334155;
+      color: #e2e8f0;
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>OKSOOHT 메일 UIA 테스트</h1>
+    <p>네이버: <code>/v2/sent/done</code> (또는 <code>/v2/new/done</code>) → 보낸메일함. Gmail: 팝업 작성 캐시 + 토스트. 그룹웨어: UIA 작성 감지 + 팝업 창 닫힘.</p>
+  </header>
+  <div class="toolbar">
+    <button class="primary" id="btnScrape">지금 스캔</button>
+    <button id="btnClear">로그 지우기</button>
+    <button id="btnToggle">감시 일시정지</button>
+    <span class="status" id="status"><span class="dot"></span>감시 중 · 4초 간격</span>
+  </div>
+  <main>
+    <section class="panel">
+      <h2>메일 발송 로그</h2>
+      <div class="panel-body" id="logList"><div class="empty">아직 발송 로그 없음</div></div>
+    </section>
+    <section class="panel">
+      <h2>실시간 스캔 (디버그)</h2>
+      <div class="panel-body" id="debugList"><div class="empty">브라우저 메일 창 스캔 결과</div></div>
+    </section>
+  </main>
+  <script>
+    const logList = document.getElementById('logList');
+    const debugList = document.getElementById('debugList');
+    const statusEl = document.getElementById('status');
+    const btnToggle = document.getElementById('btnToggle');
+    let monitoring = true;
+
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function renderLog(entry) {
+      if (logList.querySelector('.empty')) logList.innerHTML = '';
+      const d = entry.details || {};
+      const div = document.createElement('div');
+      div.className = 'log-item';
+      div.innerHTML = `
+        <div class="time">${esc(new Date(entry.timestamp).toLocaleString('ko-KR'))}</div>
+        <div class="msg">${esc(entry.message)}</div>
+        <div class="field"><b>채널:</b> ${esc(d.provider)} · <b>감지:</b> ${esc(d.detectReason)}</div>
+        <div class="field"><b>받는사람:</b> ${esc((d.recipients || []).join(', ') || '-')}</div>
+        <div class="field"><b>제목:</b> ${esc(d.subject || '-')}</div>
+        <div class="field"><b>첨부:</b> ${esc((d.attachments || []).join(', ') || '-')}</div>
+        <div class="field"><b>보낸함 행:</b> ${esc((d.sentRows || []).slice(0,3).join(' | ') || '-')}</div>
+        <div class="field"><b>본문:</b> ${esc(d.bodyPreview || '-')}</div>
+      `;
+      logList.prepend(div);
+    }
+
+    function renderDebug(info) {
+      if (debugList.querySelector('.empty')) debugList.innerHTML = '';
+      const lines = (info.windows || []).map(w => {
+        const tags = [
+          w.process,
+          w.pageUrl ? 'URL' : '',
+          w.isNaverSendDone ? 'NAVER_DONE' : '',
+          w.isNaverReadMail ? 'NAVER_READ' : '',
+          w.isSuccessPage ? 'SUCCESS' : '',
+          w.hasComposePopup ? 'COMPOSE' : '',
+          w.hasSendButton ? 'SEND_BTN' : '',
+          (w.recipients || []).length ? 'TO' : '',
+          w.subject ? 'SUBJ' : '',
+          (w.attachments || []).length ? 'ATT' : ''
+        ].filter(Boolean).map(t => `<span class="badge">${t}</span>`).join('');
+        return `${tags}\n${w.title}\n  url: ${w.pageUrl||'-'}\n  to: ${(w.recipients||[]).join(', ')||'-'}\n  subj: ${w.subject||'-'}\n  att: ${(w.attachments||[]).join(', ')||'-'}\n  body: ${(w.bodyPreview||'').slice(0,120)||'-'}`;
+      }).join('\n\n');
+      debugList.innerHTML = `<div class="debug-item">${esc(info.at || '')} · 창 ${info.windowCount || 0}개\n${info.error ? 'ERROR: '+info.error+'\n' : ''}${lines || '(메일 브라우저 창 없음)'}</div>` + debugList.innerHTML;
+      const items = debugList.querySelectorAll('.debug-item');
+      if (items.length > 15) items[items.length - 1].remove();
+    }
+
+    async function init() {
+      const logs = await window.testAPI.getLogs();
+      logs.reverse().forEach(renderLog);
+      const st = await window.testAPI.getStatus();
+      const modeLabel = st.mode === 'burst'
+        ? `급속 스캔 중 (${Math.ceil((st.burstRemainingMs || 0) / 1000)}초 남음)`
+        : `대기 중 · ${st.idleMs / 1000}초 간격 신호 감시`;
+      statusEl.innerHTML = `<span class="dot" style="background:${st.mode === 'burst' ? '#38bdf8' : '#22c55e'}"></span>${modeLabel}`;
+
+      window.testAPI.onMailLog(renderLog);
+      window.testAPI.onScrapeDebug(renderDebug);
+
+      document.getElementById('btnScrape').onclick = async () => {
+        const btn = document.getElementById('btnScrape');
+        btn.disabled = true;
+        btn.textContent = '스캔 중...';
+        statusEl.innerHTML = '<span class="dot" style="background:#38bdf8"></span>Full 스캔 중...';
+        try {
+          const r = await window.testAPI.scrapeNow();
+          const err = r?.error ? ` · 오류: ${r.error}` : '';
+          statusEl.innerHTML = `<span class="dot" style="background:#22c55e"></span>스캔 완료 · ${r?.windowCount ?? 0}개 창${err}`;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '지금 스캔';
+        }
+      };
+      document.getElementById('btnClear').onclick = async () => {
+        await window.testAPI.clearLogs();
+        logList.innerHTML = '<div class="empty">아직 발송 로그 없음</div>';
+      };
+      btnToggle.onclick = async () => {
+        monitoring = !monitoring;
+        const st = await window.testAPI.toggleMonitor(monitoring);
+        btnToggle.textContent = monitoring ? '감시 일시정지' : '감시 재개';
+        statusEl.innerHTML = monitoring
+          ? `<span class="dot"></span>대기 중 · 2초 간격 신호 감시`
+          : `<span class="dot" style="background:#f59e0b"></span>일시정지`;
+      };
+    }
+
+    init();
+  </script>
+</body>
+</html>

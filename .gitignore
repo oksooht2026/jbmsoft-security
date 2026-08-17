@@ -10,3 +10,6 @@ security/default-blocklist.json
 generate_blocklist.js
 fetch_real_blocklist.js
 scratch*.js
+
+.vercel
+.env*

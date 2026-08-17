@@ -1,9 +1,11 @@
 {
   "version": 2,
   "name": "oksooht-security-admin",
-  "cleanUrls": true,
   "framework": null,
   "rewrites": [
-    { "source": "/", "destination": "/index.html" }
+    { "source": "/docs", "destination": "/docs/index.html" },
+    { "source": "/docs/", "destination": "/docs/index.html" },
+    { "source": "/file-logs", "destination": "/file-logs.html" },
+    { "source": "/file-logs/", "destination": "/file-logs.html" }
   ]
 }
