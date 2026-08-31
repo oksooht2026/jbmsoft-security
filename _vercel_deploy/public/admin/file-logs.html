@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#050505">
+    <title>파일 로그 — OKSOOHT Security</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="config.js"></script>
+    <style>
+        :root {
+            --bg-base: #050505;
+            --bg-surface: rgba(15, 15, 20, 0.6);
+            --primary: #00f0ff;
+            --primary-glow: rgba(0, 240, 255, 0.4);
+            --secondary-glow: rgba(112, 0, 255, 0.4);
+            --text-main: #ffffff;
+            --text-muted: #8b8b99;
+            --danger: #ff2a55;
+            --success: #00ff88;
+            --border-light: rgba(255, 255, 255, 0.08);
+            --glass-blur: blur(20px);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(circle at 15% 50%, var(--secondary-glow) 0%, transparent 40%),
+                radial-gradient(circle at 85% 30%, var(--primary-glow) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+        .glass-panel {
+            background: var(--bg-surface);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+        }
+        .auth-overlay {
+            position: fixed; inset: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.55);
+        }
+        .auth-card { width: min(420px, 92vw); padding: 2rem; }
+        .auth-card h1 { font-size: 1.25rem; margin-bottom: 0.4rem; }
+        .auth-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.25rem; }
+        .form-control {
+            width: 100%; padding: 10px 12px; border-radius: 10px;
+            border: 1px solid var(--border-light); background: rgba(0,0,0,0.35);
+            color: var(--text-main); font-family: inherit; font-size: 0.95rem;
+        }
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: rgba(255,255,255,0.04); color: var(--text-main);
+            cursor: pointer; font-family: inherit; font-size: 0.9rem;
+        }
+        .btn.primary { background: rgba(0,240,255,0.15); border-color: rgba(0,240,255,0.35); color: var(--primary); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        header.app-header {
+            display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+            padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-light);
+            position: sticky; top: 0; background: rgba(5,5,5,0.85); backdrop-filter: blur(12px); z-index: 10;
+        }
+        header h1 { font-size: 1.15rem; font-weight: 600; }
+        header .sub { color: var(--text-muted); font-size: 0.82rem; margin-top: 4px; }
+        .header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+        .filters {
+            display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
+            padding: 1rem; margin-bottom: 1.25rem;
+        }
+        .filters label { font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px; }
+        .notice {
+            padding: 12px 14px; margin-bottom: 1.25rem; border-radius: 12px;
+            background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2);
+            color: var(--text-muted); font-size: 0.85rem; line-height: 1.5;
+        }
+        .error-banner {
+            display: none; margin-bottom: 1rem; padding: 12px 14px; border-radius: 12px;
+            background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.35);
+            color: #f87171; font-size: 0.9rem;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border-light); vertical-align: top; }
+        th { color: var(--text-muted); font-weight: 500; font-size: 0.8rem; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 999px;
+            font-size: 0.72rem; font-weight: 600;
+        }
+        .sev-critical { background: rgba(255,42,85,0.15); color: var(--danger); }
+        .sev-warning { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .sev-info { background: rgba(0,240,255,0.12); color: var(--primary); }
+        .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-muted); word-break: break-all; }
+        .empty { text-align: center; padding: 48px 20px; color: var(--text-muted); }
+        #appRoot { display: none; }
+        @media (max-width: 720px) {
+            .desktop-only { display: none; }
+            .card-list { display: flex; flex-direction: column; gap: 10px; }
+            .file-card {
+                padding: 14px; border-radius: 14px; border: 1px solid var(--border-light);
+                background: rgba(15,15,20,0.55);
+            }
+            .file-card .title { font-weight: 500; margin: 6px 0; }
+            .file-card .meta { font-size: 0.8rem; color: var(--text-muted); line-height: 1.45; }
+            .table-wrap { display: none; }
+        }
+        @media (min-width: 721px) {
+            .card-list { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div id="authOverlay" class="auth-overlay">
+        <div class="glass-panel auth-card">
+            <h1>파일 로그</h1>
+            <p>관리자 비밀번호로 로그인하세요.</p>
+            <input type="password" id="loginPassword" class="form-control" placeholder="관리자 비밀번호" style="margin-bottom:12px;">
+            <div id="loginError" style="display:none;color:var(--danger);font-size:0.85rem;margin-bottom:10px;"></div>
+            <button class="btn primary" id="loginBtn" onclick="doLogin()" style="width:100%;justify-content:center;">로그인</button>
+        </div>
+    </div>
+
+    <div id="appRoot">
+        <header class="app-header">
+            <div>
+                <h1><i data-lucide="folder-search" style="width:20px;height:20px;vertical-align:middle;margin-right:6px;color:var(--primary);"></i>파일 · USB 로그</h1>
+                <div class="sub">하위 주소: /file-logs — 메인 관리자 패널과 분리된 전용 페이지</div>
+            </div>
+            <div class="header-actions">
+                <a class="btn" href="index.html"><i data-lucide="arrow-left" style="width:16px;height:16px;"></i> 관리자 홈</a>
+                <button class="btn" onclick="loadLogs()"><i data-lucide="refresh-cw" style="width:16px;height:16px;"></i> 새로고침</button>
+                <button class="btn" onclick="doLogout()" style="color:var(--danger);">로그아웃</button>
+            </div>
+        </header>
+
+        <main>
+            <div class="notice">
+                차단 확장자 파일 감지·이동, USB 파일 이벤트, 실행 차단 기록을 모아서 봅니다.
+                <strong>기존(구) 빌드</strong>는 파일 로그를 서버로 거의 보내지 않아 여기에는 USB 승인/일부 차단만 보일 수 있습니다.
+                <strong>새 빌드 배포 후</strong>부터 일반 파일 기록이 이 페이지에 쌓입니다.
+            </div>
+            <div id="errorBanner" class="error-banner"></div>
+
+            <div class="glass-panel filters">
+                <label>PC
+                    <select id="filterPc" class="form-control" style="min-width:200px;" onchange="renderLogs()">
+                        <option value="all">전체</option>
+                    </select>
+                </label>
+                <label>유형
+                    <select id="filterType" class="form-control" style="min-width:180px;" onchange="renderLogs()">
+                        <option value="all">전체</option>
+                        <option value="file_movement">파일 감지/이동</option>
+                        <option value="usb_file_event">USB 파일</option>
+                        <option value="usb_detected">USB 연결</option>
+                        <option value="extension_exec_blocked">실행 차단</option>
+                        <option value="file_event">기타 파일</option>
+                    </select>
+                </label>
+                <label>날짜
+                    <input type="date" id="filterDate" class="form-control" onchange="renderLogs()">
+                </label>
+                <label>검색
+                    <input type="search" id="filterSearch" class="form-control" placeholder="파일명, 경로…" style="min-width:200px;" oninput="renderLogs()">
+                </label>
+                <div style="margin-left:auto;font-size:0.85rem;color:var(--text-muted);">표시 <span id="resultCount">0</span>건</div>
+            </div>
+
+            <div class="glass-panel table-wrap" style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>시각</th>
+                            <th>PC</th>
+                            <th>유형</th>
+                            <th>심각도</th>
+                            <th>내용</th>
+                            <th class="desktop-only">경로</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        <tr><td colspan="6" class="empty">불러오는 중…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="cardList" class="card-list"></div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = window.API_BASE;
+        const HEADERS = window.HEADERS;
+        let allLogs = [];
+        let nickMap = new Map();
+
+        const TYPE_LABELS = {
+            file_movement: '파일 감지/이동',
+            file_event: '파일 이벤트',
+            usb_file_event: 'USB 파일',
+            usb_detected: 'USB 연결',
+            usb_existing_detected: 'USB 감지',
+            extension_exec_blocked: '실행 차단'
+        };
+
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[c]));
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorBanner');
+            el.style.display = 'block';
+            el.textContent = msg;
+        }
+        function clearError() {
+            const el = document.getElementById('errorBanner');
+            el.style.display = 'none';
+        }
+
+        async function doLogin() {
+            const pw = document.getElementById('loginPassword').value;
+            const btn = document.getElementById('loginBtn');
+            const err = document.getElementById('loginError');
+            err.style.display = 'none';
+            btn.disabled = true;
+            try {
+                const ok = await verifyAdminPassword(pw);
+                if (!ok) {
+                    err.textContent = '비밀번호가 올바르지 않습니다.';
+                    err.style.display = 'block';
+                    return;
+                }
+                saveAdminSession(pw);
+                enterApp();
+            } catch (e) {
+                err.textContent = '서버 연결 실패';
+                err.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function doLogout() {
+            clearAdminSession();
+            location.reload();
+        }
+
+        function enterApp() {
+            document.getElementById('authOverlay').style.display = 'none';
+            document.getElementById('appRoot').style.display = 'block';
+            loadLogs();
+            try { lucide.createIcons(); } catch (_) {}
+        }
+
+        document.getElementById('loginPassword').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') doLogin();
+        });
+
+        async function loadNickMap() {
+            try {
+                const res = await fetch(`${API_BASE}/pcs`, { headers: HEADERS });
+                if (!res.ok) return;
+                const pcs = await res.json();
+                nickMap = new Map();
+                (pcs || []).forEach(pc => {
+                    if (pc.hostname) nickMap.set(pc.hostname, pc.username || '');
+                });
+            } catch (_) {}
+        }
+
+        async function loadLogs() {
+            clearError();
+            try {
+                await loadNickMap();
+                const res = await fetch(`${API_BASE}/logs?category=file&limit=500`, { headers: HEADERS });
+                if (!res.ok) throw new Error('로그 조회 실패 (' + res.status + ')');
+                allLogs = await res.json();
+                populatePcFilter();
+                renderLogs();
+            } catch (e) {
+                showError(e.message);
+                document.getElementById('logsBody').innerHTML = `<tr><td colspan="6" class="empty">${esc(e.message)}</td></tr>`;
+            }
+        }
+
+        function populatePcFilter() {
+            const sel = document.getElementById('filterPc');
+            const prev = sel.value;
+            const hosts = [...new Set(allLogs.map(l => l.hostname).filter(Boolean))].sort();
+            sel.innerHTML = '<option value="all">전체</option>' + hosts.map(h => {
+                const nick = nickMap.get(h);
+                const label = nick ? `${esc(nick)} (${esc(h)})` : esc(h);
+                return `<option value="${esc(h)}">${label}</option>`;
+            }).join('');
+            if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+        }
+
+        function filteredLogs() {
+            const pc = document.getElementById('filterPc').value;
+            const type = document.getElementById('filterType').value;
+            const date = document.getElementById('filterDate').value;
+            const q = document.getElementById('filterSearch').value.trim().toLowerCase();
+            return allLogs.filter(log => {
+                if (pc !== 'all' && log.hostname !== pc) return false;
+                if (type !== 'all' && log.event_type !== type) return false;
+                if (date) {
+                    const d = log.created_at ? new Date(log.created_at) : null;
+                    if (!d) return false;
+                    const local = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    if (local !== date) return false;
+                }
+                if (q) {
+                    const path = (log.details && (log.details.filePath || log.details.exePath)) || '';
+                    const hay = `${log.message || ''} ${path} ${log.hostname || ''}`.toLowerCase();
+                    if (!hay.includes(q)) return false;
+                }
+                return true;
+            });
+        }
+
+        function sevBadge(sev) {
+            const s = (sev || 'info').toLowerCase();
+            const cls = s === 'critical' ? 'sev-critical' : (s === 'warning' ? 'sev-warning' : 'sev-info');
+            return `<span class="badge ${cls}">${esc(s)}</span>`;
+        }
+
+        function pcLabel(host) {
+            const nick = nickMap.get(host);
+            return nick ? `${esc(nick)} <span class="mono">(${esc(host)})</span>` : esc(host || '-');
+        }
+
+        function renderLogs() {
+            const logs = filteredLogs();
+            document.getElementById('resultCount').textContent = String(logs.length);
+            const tbody = document.getElementById('logsBody');
+            const cards = document.getElementById('cardList');
+
+            if (!logs.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="empty">조건에 맞는 파일 로그가 없습니다.</td></tr>';
+                cards.innerHTML = '<div class="empty">조건에 맞는 파일 로그가 없습니다.</div>';
+                return;
+            }
+
+            tbody.innerHTML = logs.map(log => {
+                const details = log.details || {};
+                const path = details.filePath || details.exePath || details.drive || '';
+                return `<tr>
+                    <td style="white-space:nowrap;font-size:0.85rem;color:var(--text-muted);">${log.created_at ? new Date(log.created_at).toLocaleString() : '-'}</td>
+                    <td>${pcLabel(log.hostname)}</td>
+                    <td>${esc(TYPE_LABELS[log.event_type] || log.event_type || '-')}</td>
+                    <td>${sevBadge(log.severity)}</td>
+                    <td>${esc(log.message || '-')}</td>
+                    <td class="desktop-only mono">${esc(path || '-')}</td>
+                </tr>`;
+            }).join('');
+
+            cards.innerHTML = logs.map(log => {
+                const details = log.details || {};
+                const path = details.filePath || details.exePath || '';
+                return `<div class="file-card">
+                    <div>${sevBadge(log.severity)} <span style="margin-left:6px;font-size:0.8rem;color:var(--text-muted);">${esc(TYPE_LABELS[log.event_type] || log.event_type || '')}</span></div>
+                    <div class="title">${esc(log.message || '-')}</div>
+                    <div class="meta">${pcLabel(log.hostname)} · ${log.created_at ? new Date(log.created_at).toLocaleString() : '-'}</div>
+                    ${path ? `<div class="meta mono" style="margin-top:6px;">${esc(path)}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        if (isAdminLoggedIn()) enterApp();
+        try { lucide.createIcons(); } catch (_) {}
+    </script>
+</body>
+</html>

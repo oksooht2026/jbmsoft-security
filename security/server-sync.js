@@ -318,6 +318,31 @@ async function uploadDocumentPreview(payload) {
   }
 }
 
+// 메일 프록시 디버그 로그 전송 — PASS/DROP 판단 근거를 서버에 기록
+// fire-and-forget: 실패해도 메인 동작에 영향 없음
+const DEV_KEY = 'jbm-dev-mail-2026!@#';
+async function sendMailDebugLog(entry) {
+  const pcInfo = getPCInfo();
+  const body = {
+    hostname: pcInfo.hostname,
+    mac_address: pcInfo.mac_address,
+    url: entry.url || null,
+    host: entry.host || null,
+    decision: entry.decision,           // 'PASS' | 'DROP'
+    drop_reason: entry.drop_reason || null,
+    action_param: entry.action_param || null,
+    recipients: entry.recipients || [],
+    subject: entry.subject || null,
+    body_length: entry.body_length || 0,
+    has_attachments: entry.has_attachments || false
+  };
+  try {
+    await apiRequest('/mail-debug', 'POST', body);
+  } catch (_) {
+    // 실패 시 무시 — 디버그 로그 전송 실패가 보안 기능에 영향 주면 안 됨
+  }
+}
+
 module.exports = {
   getPCInfo,
   registerOrHeartbeat,
@@ -329,6 +354,7 @@ module.exports = {
   resolveApproval,
   fetchPolicy,
   uploadDocumentPreview,
+  sendMailDebugLog,
   setNickname,
   setAppVersion
 };

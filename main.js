@@ -388,6 +388,7 @@ async function startMailExtensionBridge() {
       onLog: handleMailExtensionLog
     });
     console.log('[Main] SSL 복호화 로컬 프록시 서버(38472) 가동 완료');
+    startProxyHealthWatchdog(userDataPath);
   } catch (err) {
     console.warn('[Main] SSL 복호화 프록시 가동 안내:', err.message);
   }
@@ -403,7 +404,52 @@ async function startMailExtensionBridge() {
   }
 }
 
+let proxyHealthTimer = null;
+let proxyFailureCount = 0;
+
+function startProxyHealthWatchdog(userDataPath) {
+  if (proxyHealthTimer) clearInterval(proxyHealthTimer);
+  proxyHealthTimer = setInterval(async () => {
+    try {
+      const isAlive = await mailProxyServer.checkHealth();
+      if (isAlive) {
+        if (proxyFailureCount > 0) {
+          console.log('[Main] 프록시 서버 헬스체크 정상 복구 확인');
+        }
+        proxyFailureCount = 0;
+      } else {
+        proxyFailureCount++;
+        console.warn(`[Main] 프록시 헬스체크 실패 (${proxyFailureCount}회), 자동 복구 시도...`);
+        try {
+          await mailProxyServer.restart();
+          const restored = await mailProxyServer.checkHealth();
+          if (restored) {
+            console.log('[Main] 프록시 서버 자동 자가치유(재기동) 성공');
+            proxyFailureCount = 0;
+            return;
+          }
+        } catch (restartErr) {
+          console.error('[Main] 프록시 재기동 에러:', restartErr.message);
+        }
+
+        // 3회 연속 복구 실패 시 Fail-Open (인터넷 마비 방지)
+        if (proxyFailureCount >= 3) {
+          console.error('[Main] 프록시 연속 복구 실패 -> Fail-Open 적용 (시스템 프록시 임시 비활성화)');
+          mailProxyServer.setWindowsProxy(false);
+          if (serverSync) {
+            serverSync.sendLog('proxy_fail_open', 'warning', '프록시 복구 지연으로 인터넷 접속 보장을 위해 Fail-Open 적용됨').catch(() => {});
+          }
+        }
+      }
+    } catch (_) {}
+  }, 60000); // 1분 주기 감시
+}
+
 async function stopMailExtensionBridge() {
+  if (proxyHealthTimer) {
+    clearInterval(proxyHealthTimer);
+    proxyHealthTimer = null;
+  }
   await mailLogQueue.flushQueue().catch(() => {});
   mailLogQueue.stopFlushLoop();
   await mailExtensionBridge.stop().catch(() => {});
@@ -1405,20 +1451,28 @@ app.on('before-quit', async () => {
 });
 
 // 프로세스 예기치 못한 종료 시 프록시 설정 복구 안전 장치
-function exitHandler() {
+function safeRestoreProxy() {
   try {
     const proxy = require('./security/mail-proxy-server');
-    proxy.stop();
+    proxy.setWindowsProxy(false);
   } catch (_) {}
-  process.exit();
 }
 
-process.on('exit', exitHandler);
-process.on('SIGINT', exitHandler);
-process.on('SIGTERM', exitHandler);
+process.on('exit', () => {
+  safeRestoreProxy();
+});
+process.on('SIGINT', () => {
+  safeRestoreProxy();
+  process.exit(0);
+});
+process.on('SIGTERM', () => {
+  safeRestoreProxy();
+  process.exit(0);
+});
 process.on('uncaughtException', (err) => {
   console.error('[Main] Uncaught Exception:', err);
-  exitHandler();
+  safeRestoreProxy();
+  process.exit(1);
 });
 
 

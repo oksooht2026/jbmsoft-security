@@ -2,6 +2,7 @@
 const supabase = require('./lib/supabase');
 const { bumpAdminNotify } = require('./lib/notify-admin');
 const { resolveUsernameForUpsert } = require('./lib/pc-nickname');
+const { isUpdateTargetedTo } = require('./lib/app-update-utils');
 
 function parseSettingValue(val) {
   if (val == null) return val;
@@ -16,6 +17,49 @@ async function loadAllSettings() {
   return obj;
 }
 
+async function resolveUpdatePayload(settings, macAddress) {
+  // 1) 신규 배포 형식: settings.app_update (GitHub Releases URL 또는 Supabase Storage)
+  const appUpdate = settings.app_update;
+  if (appUpdate && appUpdate.published && appUpdate.version) {
+    if (!isUpdateTargetedTo(appUpdate, macAddress)) {
+      return null;
+    }
+
+    let downloadUrl = appUpdate.download_url || null;
+    if (!downloadUrl && appUpdate.storage_path) {
+      try {
+        const { data: signedData } = await supabase.storage
+          .from('app-updates')
+          .createSignedUrl(appUpdate.storage_path, 3600);
+        if (signedData?.signedUrl) {
+          downloadUrl = signedData.signedUrl;
+        }
+      } catch (_) {}
+    }
+
+    if (downloadUrl) {
+      return {
+        version: String(appUpdate.version),
+        url: String(downloadUrl),
+        sha256: appUpdate.sha256 || null,
+        size: appUpdate.size ? parseInt(appUpdate.size, 10) : null
+      };
+    }
+  }
+
+  // 2) 레거시 형식 호환: settings.update_version && settings.update_url
+  if (settings.update_version && settings.update_url) {
+    return {
+      version: String(settings.update_version),
+      url: String(settings.update_url),
+      sha256: settings.update_sha256 || null,
+      size: settings.update_size ? parseInt(settings.update_size, 10) : null
+    };
+  }
+
+  return null;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -27,7 +71,8 @@ module.exports = async (req, res) => {
   const {
     hostname, mac_address, ip_address, username, os_version, app_version,
     policy_version: clientPolicyVersion = 0,
-    needs_approvals: needsApprovals = false
+    needs_approvals: needsApprovals = false,
+    update_status = null
   } = req.body || {};
 
   if (!mac_address) return res.status(400).json({ error: 'mac_address required' });
@@ -47,19 +92,30 @@ module.exports = async (req, res) => {
 
     const resolvedUsername = await resolveUsernameForUpsert(supabase, mac_address, username);
 
-    const { data: pcRows, error: pcErr } = await supabase.from('pcs').upsert({
+    const upsertPayload = {
       hostname,
       mac_address,
       ip_address,
       username: resolvedUsername,
-      os_version,
-      app_version,
       last_seen: new Date().toISOString(),
       status: 'online'
-    }, { onConflict: 'mac_address' }).select();
+    };
+    if (app_version) upsertPayload.app_version = app_version;
+    if (update_status) upsertPayload.update_status = update_status;
 
-    if (pcErr) throw pcErr;
-    const pc = pcRows[0];
+    let pc = null;
+    try {
+      const { data: pcRows, error: pcErr } = await supabase.from('pcs').upsert(upsertPayload, { onConflict: 'mac_address' }).select();
+      if (pcErr) throw pcErr;
+      pc = pcRows[0];
+    } catch (upsertErr) {
+      // app_version, update_status 컬럼이 없는 스키마 대비 폴백
+      delete upsertPayload.app_version;
+      delete upsertPayload.update_status;
+      const { data: pcRows, error: pcErr } = await supabase.from('pcs').upsert(upsertPayload, { onConflict: 'mac_address' }).select();
+      if (pcErr) throw pcErr;
+      pc = pcRows[0];
+    }
 
     const settings = await loadAllSettings();
     const serverPolicyVersion = parseInt(settings.policy_version, 10) || 0;
@@ -97,16 +153,8 @@ module.exports = async (req, res) => {
       approvals = appr || [];
     }
 
-    // 원격 업데이트 — settings에 update_version + update_url 이 있으면 클라이언트에 전달
-    let update = null;
-    if (settings.update_version && settings.update_url) {
-      update = {
-        version: String(settings.update_version),
-        url: String(settings.update_url),
-        sha256: settings.update_sha256 || null,
-        size: settings.update_size ? parseInt(settings.update_size, 10) : null
-      };
-    }
+    // 원격 업데이트 — settings의 app_update(URL 또는 Storage) 확인 후 전달
+    const update = await resolveUpdatePayload(settings, mac_address);
 
     return res.status(200).json({
       pc_id: pc.id,

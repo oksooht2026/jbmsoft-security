@@ -30,7 +30,8 @@ module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // 하트비트가 5분 주기라 여유를 두고 15분 이내 last_seen = Online
+    const onlineThresholdAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
@@ -54,7 +55,7 @@ module.exports = async (req, res) => {
 
     const pcs = (pcsRes.data || []).map(pc => ({
       ...pc,
-      is_online: pc.last_seen && new Date(pc.last_seen) >= new Date(fiveMinAgo)
+      is_online: pc.last_seen && new Date(pc.last_seen) >= new Date(onlineThresholdAgo)
     }));
 
     const logs = logsRes.data || [];

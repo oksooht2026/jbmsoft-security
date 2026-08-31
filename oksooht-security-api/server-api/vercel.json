@@ -8,6 +8,7 @@
     { "src": "/api/(.*)", "dest": "/api/$1.js" },
     { "src": "/admin", "dest": "/public/admin/index.html" },
     { "src": "/admin/", "dest": "/public/admin/index.html" },
+    { "src": "/admin/file-logs/?$", "dest": "/public/admin/file-logs.html" },
     { "src": "/admin/(.*)", "dest": "/public/admin/$1" },
     { "src": "/", "dest": "/public/admin/index.html" }
   ]

@@ -8,6 +8,13 @@ const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
 const forge = require('node-forge');
+let serverSync = null;
+try { serverSync = require('./server-sync'); } catch (_) {}
+function _debugLog(entry) {
+  if (serverSync && typeof serverSync.sendMailDebugLog === 'function') {
+    serverSync.sendMailDebugLog(entry).catch(() => {});
+  }
+}
 
 const PROXY_PORT = 38472;
 let proxyServer = null;
@@ -136,6 +143,7 @@ function initCA(userDataPath) {
 
 // === 임시 도메인 인증서 동적 서명 ===
 const certCache = new Map();
+const MAX_CERT_CACHE_SIZE = 200;
 
 function getOrCreateHostCert(servername) {
   if (certCache.has(servername)) {
@@ -166,6 +174,11 @@ function getOrCreateHostCert(servername) {
     key: pki.privateKeyToPem(hostKeyPair.privateKey),
     cert: pki.certificateToPem(cert)
   };
+
+  if (certCache.size >= MAX_CERT_CACHE_SIZE) {
+    const oldestKey = certCache.keys().next().value;
+    if (oldestKey) certCache.delete(oldestKey);
+  }
 
   certCache.set(servername, credentials);
   return credentials;
@@ -865,6 +878,7 @@ function handleDecryptedRequest(req, bodyBuffer) {
       parsed.recipients = ['내부수신자'];
     } else {
       proxyDebugLog('DROP', `수신자·제목·본문 모두 없음 — 드롭`, `host=${host} url=${url}`);
+      _debugLog({ url, host, decision: 'DROP', drop_reason: '수신자·제목·본문 모두 없음', action_param: (url.match(/action=([^&]+)/) || [])[1] || null, recipients: [], subject: null, body_length: bodyText.length, has_attachments: false });
       return;
     }
   }
@@ -877,6 +891,7 @@ function handleDecryptedRequest(req, bodyBuffer) {
                          (!parsed.recipients || parsed.recipients.every(r => r === '내부수신자'));
   if (isContentEmpty) {
     proxyDebugLog('DROP', `제목·본문·첨부 모두 빈 요청 — 드롭`, `host=${host} url=${url}`);
+    _debugLog({ url, host, decision: 'DROP', drop_reason: '제목·본문·첨부 모두 빈 요청', action_param: (url.match(/action=([^&]+)/) || [])[1] || null, recipients: parsed.recipients || [], subject: parsed.subject || null, body_length: bodyText.length, has_attachments: false });
     return;
   }
 
@@ -925,6 +940,7 @@ function handleDecryptedRequest(req, bodyBuffer) {
   };
 
   proxyDebugLog('CAPTURED', `메일 발송 감지! [${browser}]`, `host=${host} url=${url} subject=${parsed.subject || '(없음)'} recipients=${(parsed.recipients || []).join(',')}`);
+  _debugLog({ url, host, decision: 'PASS', drop_reason: null, action_param: (url.match(/action=([^&]+)/) || [])[1] || null, recipients: parsed.recipients || [], subject: parsed.subject || null, body_length: (parsed.body || '').length, has_attachments: (parsed.attachments || []).length > 0 });
   if (typeof onMailLog === 'function') {
     onMailLog(payload);
   }
@@ -963,13 +979,18 @@ function refreshWindowsProxy() {
 }
 
 // === 메인 프록시 구동 ===
+let lastUserDataPath = null;
+let lastOnLog = null;
+
 function start(options = {}) {
   const { userDataPath, onLog } = options;
-  onMailLog = onLog;
+  if (userDataPath) lastUserDataPath = userDataPath;
+  if (onLog) lastOnLog = onLog;
+  onMailLog = lastOnLog;
 
   // 디버그 로그 파일 경로 설정
-  if (userDataPath) {
-    debugLogPath = path.join(userDataPath, 'proxy-debug.log');
+  if (lastUserDataPath) {
+    debugLogPath = path.join(lastUserDataPath, 'proxy-debug.log');
     // 로그 파일이 5MB 초과 시 초기화
     try {
       if (fs.existsSync(debugLogPath) && fs.statSync(debugLogPath).size > 5 * 1024 * 1024) {
@@ -978,7 +999,7 @@ function start(options = {}) {
     } catch (_) {}
   }
 
-  initCA(userDataPath);
+  initCA(lastUserDataPath);
 
   return new Promise((resolve, reject) => {
     // 1) 로컬 복호화용 TLS 서버 구동 (포트는 OS가 비어있는 포트로 할당)
@@ -987,19 +1008,24 @@ function start(options = {}) {
       const targetHost = req.headers.host;
       console.log(`[MailProxy Debug] Intercepted: ${req.method} ${targetHost}${req.url}`);
       const options = {
-        hostname: targetHost.split(':')[0],
-        port: parseInt(targetHost.split(':')[1], 10) || 443,
+        hostname: targetHost ? targetHost.split(':')[0] : 'localhost',
+        port: targetHost && targetHost.split(':')[1] ? parseInt(targetHost.split(':')[1], 10) : 443,
         path: req.url,
         method: req.method,
         headers: req.headers
       };
 
-      // POST/PUT 바디 버퍼링 (감시 도메인인 경우에만)
+      // POST/PUT 바디 버퍼링 (15MB 캡 - OOM 크래시 방지 및 전송 파이프 유지)
       const isPostOrPut = req.method === 'POST' || req.method === 'PUT';
+      const MAX_BODY_CAPTURE_BYTES = 15 * 1024 * 1024;
+      let capturedBytes = 0;
       const chunks = [];
 
       req.on('data', chunk => {
-        if (isPostOrPut) chunks.push(chunk);
+        if (isPostOrPut && capturedBytes < MAX_BODY_CAPTURE_BYTES) {
+          chunks.push(chunk);
+          capturedBytes += chunk.length;
+        }
       });
 
       const proxyReq = https.request(options, (proxyRes) => {
@@ -1007,10 +1033,16 @@ function start(options = {}) {
         proxyRes.pipe(res);
       });
 
+      proxyReq.setTimeout(120000, () => proxyReq.destroy());
       proxyReq.on('error', () => {
-        res.writeHead(502);
-        res.end();
+        if (!res.headersSent) {
+          res.writeHead(502);
+          res.end();
+        }
       });
+
+      req.on('error', () => proxyReq.destroy());
+      res.on('error', () => proxyReq.destroy());
 
       req.on('end', () => {
         const bodyBuffer = chunks.length > 0 ? Buffer.concat(chunks) : null;
@@ -1042,15 +1074,91 @@ function start(options = {}) {
       localTlsPort = localTlsServer.address().port;
       console.log(`[MailProxy] Local TLS Server listening on port ${localTlsPort}`);
 
-      // 2) 외부 Proxy 서버 구동 (포트: 38472)
+      // 2) 외부 Proxy 서버 구동 (포트: 38472) - 일반 HTTP 요청 투명 포워딩(Pass-through) 지원
       proxyServer = http.createServer((req, res) => {
-        // 일반 HTTP 프록시 요청 (보통 개발/테스트용)
-        res.writeHead(400);
-        res.end('HTTPS Connect Only');
+        try {
+          let host = req.headers.host;
+          let port = 80;
+          let reqPath = req.url;
+
+          if (req.url.startsWith('http://') || req.url.startsWith('https://')) {
+            const parsed = new URL(req.url);
+            host = parsed.hostname;
+            port = parseInt(parsed.port, 10) || (parsed.protocol === 'https:' ? 443 : 80);
+            reqPath = parsed.pathname + parsed.search;
+          } else if (host) {
+            const hostParts = host.split(':');
+            host = hostParts[0];
+            if (hostParts[1]) port = parseInt(hostParts[1], 10) || 80;
+          }
+
+          if (!host) {
+            res.writeHead(400);
+            return res.end('Invalid Host header');
+          }
+
+          const options = {
+            hostname: host,
+            port: port,
+            path: reqPath,
+            method: req.method,
+            headers: req.headers
+          };
+
+          const isInterceptTarget = shouldIntercept(host);
+          const isPostOrPut = req.method === 'POST' || req.method === 'PUT';
+          const chunks = [];
+          let capturedBytes = 0;
+          const MAX_BODY_CAPTURE_BYTES = 15 * 1024 * 1024;
+
+          req.on('data', chunk => {
+            if (isInterceptTarget && isPostOrPut && capturedBytes < MAX_BODY_CAPTURE_BYTES) {
+              chunks.push(chunk);
+              capturedBytes += chunk.length;
+            }
+          });
+
+          const proxyReq = http.request(options, (proxyRes) => {
+            res.writeHead(proxyRes.statusCode, proxyRes.headers);
+            proxyRes.pipe(res);
+          });
+
+          proxyReq.setTimeout(120000, () => proxyReq.destroy());
+          proxyReq.on('error', () => {
+            if (!res.headersSent) {
+              res.writeHead(502);
+              res.end('Bad Gateway');
+            }
+          });
+
+          req.on('error', () => proxyReq.destroy());
+          res.on('error', () => proxyReq.destroy());
+
+          req.on('end', () => {
+            if (isInterceptTarget && chunks.length > 0) {
+              const bodyBuffer = Buffer.concat(chunks);
+              try {
+                handleDecryptedRequest(req, bodyBuffer);
+              } catch (e) {
+                console.error('[MailProxy] HTTP 복호화 바디 파싱 에러:', e.message);
+              }
+            }
+          });
+
+          req.pipe(proxyReq);
+        } catch (e) {
+          if (!res.headersSent) {
+            res.writeHead(500);
+            res.end('Proxy Internal Error');
+          }
+        }
       });
 
-      // CONNECT 터널 핸들링 (핵심)
+      // CONNECT 터널 핸들링 (HTTPS)
       proxyServer.on('connect', (req, socket, head) => {
+        socket.setTimeout(180000, () => socket.destroy());
+        socket.on('error', () => {});
+
         const parts = req.url.split(':');
         const host = parts[0];
         const port = parseInt(parts[1], 10) || 443;
@@ -1059,20 +1167,22 @@ function start(options = {}) {
           // 감시 대상 도메인 -> 로컬 TLS 복호화 서버로 포워딩
           const localConn = net.connect(localTlsPort, '127.0.0.1', () => {
             socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
-            localConn.write(head);
+            if (head && head.length > 0) localConn.write(head);
             localConn.pipe(socket);
             socket.pipe(localConn);
           });
+          localConn.setTimeout(180000, () => localConn.destroy());
           localConn.on('error', () => socket.destroy());
           socket.on('error', () => localConn.destroy());
         } else {
           // 비감시 도메인 -> 원본 서버로 원시 TCP 터널링 (CONNECT 패스스루)
           const targetConn = net.connect(port, host, () => {
             socket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
-            targetConn.write(head);
+            if (head && head.length > 0) targetConn.write(head);
             targetConn.pipe(socket);
             socket.pipe(targetConn);
           });
+          targetConn.setTimeout(180000, () => targetConn.destroy());
           targetConn.on('error', () => socket.destroy());
           socket.on('error', () => targetConn.destroy());
         }
@@ -1082,13 +1192,6 @@ function start(options = {}) {
       proxyServer.listen(PROXY_PORT, '127.0.0.1', () => {
         proxyDebugLog('START', `Main Proxy Server running on port ${PROXY_PORT}`);
         setWindowsProxy(true);
-
-        // 브라우저 기존 연결 재사용 방지: 30초 간격으로 Windows proxy 설정 강제 재갱신
-        // (프록시 활성화 전에 열려있던 브라우저 연결을 새 연결로 교체하도록 유도)
-        proxyRefreshTimer = setInterval(() => {
-          try { refreshWindowsProxy(); } catch (_) {}
-        }, 30000);
-
         resolve();
       });
     });
@@ -1126,7 +1229,35 @@ function stop() {
   });
 }
 
+/** 프록시 포트(38472) 생존 여부 헬스체크 */
+function checkHealth() {
+  return new Promise((resolve) => {
+    const socket = net.connect(PROXY_PORT, '127.0.0.1', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.setTimeout(3000, () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.on('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+/** 프록시 안전 재시작 */
+async function restart() {
+  proxyDebugLog('RESTART', '프록시 서버 자가 재시작 수행');
+  try { await stop(); } catch (_) {}
+  await new Promise(r => setTimeout(r, 500));
+  return start({ userDataPath: lastUserDataPath, onLog: lastOnLog });
+}
+
 module.exports = {
   start,
-  stop
+  stop,
+  checkHealth,
+  restart,
+  setWindowsProxy
 };

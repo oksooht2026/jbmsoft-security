@@ -24,11 +24,11 @@ module.exports = async (req, res) => {
 
       if (error) throw error;
 
-      // 온라인 상태 계산 (2분 이내 last_seen = 온라인)
-      const twoMinsAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      // 하트비트 5분 주기 → 15분 이내 last_seen = 온라인
+      const onlineThresholdAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
       const pcsWithStatus = data.map(pc => ({
         ...pc,
-        is_online: pc.last_seen > twoMinsAgo
+        is_online: pc.last_seen && pc.last_seen > onlineThresholdAgo
       }));
 
       return res.status(200).json(pcsWithStatus);

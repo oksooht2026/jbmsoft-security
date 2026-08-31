@@ -1,63 +1,8 @@
-// server-api/api/sync.js — 하트비트 + 정책 + 승인 + 원격 업데이트 통합
+// server-api/api/sync.js — 하트비트 + 정책 + 승인 + 원격업데이트 통합
 const supabase = require('./lib/supabase');
 const { bumpAdminNotify } = require('./lib/notify-admin');
 const { resolveUsernameForUpsert } = require('./lib/pc-nickname');
-const { isNewerVersion, isUpdateTargetedTo } = require('./lib/app-update-utils');
-
-async function loadAppUpdate() {
-  const { data, error } = await supabase.from('settings').select('value').eq('key', 'app_update').single();
-  if (error || !data) return null;
-  try { return JSON.parse(data.value); } catch (_) { return null; }
-}
-
-/** 원격 업데이트 대상 여부 판단 + 다운로드 URL 해석 (실패해도 sync 자체는 절대 실패시키지 않음)
- *  우선순위: 외부 download_url(무료 티어) → Supabase Storage 서명 URL
- */
-async function resolveUpdatePayload(macAddress, clientAppVersion) {
-  try {
-    const appUpdate = await loadAppUpdate();
-    if (!appUpdate || !isUpdateTargetedTo(appUpdate, macAddress)) return null;
-    if (!isNewerVersion(appUpdate.version, clientAppVersion)) return null;
-
-    let url = null;
-    if (appUpdate.download_url && /^https?:\/\//i.test(appUpdate.download_url)) {
-      url = appUpdate.download_url;
-    } else if (appUpdate.storage_path) {
-      const { data: signed, error: signErr } = await supabase.storage
-        .from('app-updates')
-        .createSignedUrl(appUpdate.storage_path, 60 * 60 * 6); // 6시간 유효
-      if (signErr || !signed?.signedUrl) return null;
-      url = signed.signedUrl;
-    } else {
-      return null;
-    }
-
-    return {
-      version: appUpdate.version,
-      url,
-      filename: appUpdate.filename,
-      size: appUpdate.size || 0,
-      sha256: appUpdate.sha256 || null,
-      notes: appUpdate.notes || '',
-      silent: appUpdate.silent !== false
-    };
-  } catch (_) {
-    return null;
-  }
-}
-
-/** pcs 테이블에 app_version/update_status 기록 — 컬럼 마이그레이션 전이어도 sync 자체는 영향 없음 */
-async function recordAppVersionBestEffort(macAddress, appVersion, updateStatus) {
-  try {
-    const patch = {};
-    if (appVersion) patch.app_version = appVersion;
-    if (updateStatus !== undefined) patch.update_status = updateStatus || null;
-    if (Object.keys(patch).length === 0) return;
-    await supabase.from('pcs').update(patch).eq('mac_address', macAddress);
-  } catch (err) {
-    console.warn('[Sync] app_version/update_status 기록 스킵 (마이그레이션 필요 가능):', err.message);
-  }
-}
+const { isUpdateTargetedTo } = require('./lib/app-update-utils');
 
 function parseSettingValue(val) {
   if (val == null) return val;
@@ -72,6 +17,49 @@ async function loadAllSettings() {
   return obj;
 }
 
+async function resolveUpdatePayload(settings, macAddress) {
+  // 1) 신규 배포 형식: settings.app_update (GitHub Releases URL 또는 Supabase Storage)
+  const appUpdate = settings.app_update;
+  if (appUpdate && appUpdate.published && appUpdate.version) {
+    if (!isUpdateTargetedTo(appUpdate, macAddress)) {
+      return null;
+    }
+
+    let downloadUrl = appUpdate.download_url || null;
+    if (!downloadUrl && appUpdate.storage_path) {
+      try {
+        const { data: signedData } = await supabase.storage
+          .from('app-updates')
+          .createSignedUrl(appUpdate.storage_path, 3600);
+        if (signedData?.signedUrl) {
+          downloadUrl = signedData.signedUrl;
+        }
+      } catch (_) {}
+    }
+
+    if (downloadUrl) {
+      return {
+        version: String(appUpdate.version),
+        url: String(downloadUrl),
+        sha256: appUpdate.sha256 || null,
+        size: appUpdate.size ? parseInt(appUpdate.size, 10) : null
+      };
+    }
+  }
+
+  // 2) 레거시 형식 호환: settings.update_version && settings.update_url
+  if (settings.update_version && settings.update_url) {
+    return {
+      version: String(settings.update_version),
+      url: String(settings.update_url),
+      sha256: settings.update_sha256 || null,
+      size: settings.update_size ? parseInt(settings.update_size, 10) : null
+    };
+  }
+
+  return null;
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -84,7 +72,7 @@ module.exports = async (req, res) => {
     hostname, mac_address, ip_address, username, os_version, app_version,
     policy_version: clientPolicyVersion = 0,
     needs_approvals: needsApprovals = false,
-    update_status: updateStatus
+    update_status = null
   } = req.body || {};
 
   if (!mac_address) return res.status(400).json({ error: 'mac_address required' });
@@ -104,17 +92,30 @@ module.exports = async (req, res) => {
 
     const resolvedUsername = await resolveUsernameForUpsert(supabase, mac_address, username);
 
-    const { data: pcRows, error: pcErr } = await supabase.from('pcs').upsert({
+    const upsertPayload = {
       hostname,
       mac_address,
       ip_address,
       username: resolvedUsername,
       last_seen: new Date().toISOString(),
       status: 'online'
-    }, { onConflict: 'mac_address' }).select();
+    };
+    if (app_version) upsertPayload.app_version = app_version;
+    if (update_status) upsertPayload.update_status = update_status;
 
-    if (pcErr) throw pcErr;
-    const pc = pcRows[0];
+    let pc = null;
+    try {
+      const { data: pcRows, error: pcErr } = await supabase.from('pcs').upsert(upsertPayload, { onConflict: 'mac_address' }).select();
+      if (pcErr) throw pcErr;
+      pc = pcRows[0];
+    } catch (upsertErr) {
+      // app_version, update_status 컬럼이 없는 스키마 대비 폴백
+      delete upsertPayload.app_version;
+      delete upsertPayload.update_status;
+      const { data: pcRows, error: pcErr } = await supabase.from('pcs').upsert(upsertPayload, { onConflict: 'mac_address' }).select();
+      if (pcErr) throw pcErr;
+      pc = pcRows[0];
+    }
 
     const settings = await loadAllSettings();
     const serverPolicyVersion = parseInt(settings.policy_version, 10) || 0;
@@ -147,17 +148,13 @@ module.exports = async (req, res) => {
         .from('approvals')
         .select('*')
         .eq('pc_id', pc.id)
-        .order('created_at', { ascending: false })
+        .order('timestamp', { ascending: false })
         .limit(100);
       approvals = appr || [];
     }
 
-    // 원격 업데이트: 대상 여부·버전 비교 후 다운로드 URL 발급 (실패해도 하트비트에는 영향 없음)
-    // Vercel 서버리스는 응답 전송 후 즉시 함수를 종료할 수 있으므로 반드시 응답 전에 await 처리
-    const [update] = await Promise.all([
-      resolveUpdatePayload(mac_address, app_version),
-      recordAppVersionBestEffort(mac_address, app_version, updateStatus)
-    ]);
+    // 원격 업데이트 — settings의 app_update(URL 또는 Storage) 확인 후 전달
+    const update = await resolveUpdatePayload(settings, mac_address);
 
     return res.status(200).json({
       pc_id: pc.id,
@@ -165,7 +162,7 @@ module.exports = async (req, res) => {
       policy_changed: policyChanged,
       policy,
       approvals,
-      update
+      update   // null이면 클라이언트가 무시, 값이 있으면 checkAndApply 실행
     });
   } catch (err) {
     return res.status(500).json({ error: err.message });

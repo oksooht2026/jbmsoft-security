@@ -170,12 +170,13 @@
             border: 1px solid var(--border-light); background: rgba(0,0,0,0.35); color: var(--text-main);
         }
         .nick-cell .nick-edit-btn { padding: 4px 8px; min-width: auto; }
-        .custom-table .col-pc { width: 16%; }
-        .custom-table .col-content { width: 22%; }
-        .custom-table .col-detail { width: 28%; }
-        .custom-table .col-user { width: 10%; }
-        .custom-table .col-status { width: 10%; }
-        .custom-table .col-action { width: 14%; }
+        .custom-table .col-pc { width: 15%; }
+        .custom-table .col-content { width: 18%; }
+        .custom-table .col-detail { width: 24%; }
+        .custom-table .col-user { width: 9%; }
+        .custom-table .col-time { width: 15%; }
+        .custom-table .col-status { width: 9%; }
+        .custom-table .col-action { width: 10%; }
         .approval-detail { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
         .approval-detail .detail-line { margin-bottom: 3px; }
         .approval-detail .detail-line strong { color: var(--text-main); font-weight: 500; }
@@ -473,9 +474,15 @@
                 <button type="button" class="nav-item" data-tab="license">
                     <i data-lucide="key"></i> 라이선스
                 </button>
+                <button type="button" class="nav-item" data-tab="update">
+                    <i data-lucide="upload-cloud"></i> 원격 업데이트
+                </button>
                 <button type="button" class="nav-item" data-tab="guide">
                     <i data-lucide="book-open"></i> 프로그램 · 사용법
                 </button>
+                <a class="nav-item" href="file-logs.html" style="text-decoration:none;">
+                    <i data-lucide="folder-search"></i> 파일 로그
+                </a>
             </nav>
             <div class="sidebar-footer">
                 <button type="button" class="nav-item" onclick="adminLogout()" style="color:var(--danger);">
@@ -555,15 +562,16 @@
                     <table class="custom-table">
                         <thead>
                             <tr>
-                                <th>유형 / PC</th>
-                                <th>내용</th>
-                                <th>요청자</th>
-                                <th>상태</th>
-                                <th>작업</th>
+                                <th class="col-pc">유형 / PC</th>
+                                <th class="col-content">내용</th>
+                                <th class="col-user">요청자</th>
+                                <th class="col-time">신청 일시</th>
+                                <th class="col-status">상태</th>
+                                <th class="col-action">작업</th>
                             </tr>
                         </thead>
                         <tbody id="dashboardApprovalBody">
-                            <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">승인 요청 없음</td></tr>
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">승인 요청 없음</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -590,11 +598,12 @@
                                 <th>별명 (닉네임)</th>
                                 <th>MAC 어드레스</th>
                                 <th>내부 IP</th>
+                                <th>버전</th>
                                 <th>상태</th>
                             </tr>
                         </thead>
                         <tbody id="pcTableBody">
-                            <tr><td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>
+                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -618,16 +627,17 @@
                     <table class="custom-table">
                         <thead>
                             <tr>
-                                <th>요청 PC</th>
-                                <th>파일명 / 내용</th>
-                                <th>상세 정보</th>
-                                <th>요청자</th>
-                                <th>상태</th>
-                                <th>작업</th>
+                                <th class="col-pc">요청 PC</th>
+                                <th class="col-content">파일명 / 내용</th>
+                                <th class="col-detail">상세 정보</th>
+                                <th class="col-user">요청자</th>
+                                <th class="col-time">신청 일시</th>
+                                <th class="col-status">상태</th>
+                                <th class="col-action">작업</th>
                             </tr>
                         </thead>
                         <tbody id="approvalTableBody">
-                            <tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">요청된 결재 내역이 없습니다.</td></tr>
+                            <tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">요청된 결재 내역이 없습니다.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -753,29 +763,6 @@
                     </div>
                     <button class="btn primary" style="margin-top: 20px;" onclick="saveSettings()"><i data-lucide="save"></i> 정책 저장 및 배포</button>
                     <div id="saveMsg" style="margin-top: 10px; color: var(--success); font-weight: 500; display: none;">✅ 서버에 저장되었습니다. 클라이언트에 5분 이내 반영됩니다.</div>
-
-                    <!-- 자동 업데이트 배포 섹션 -->
-                    <div class="form-group" style="margin-top: 36px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 28px;">
-                        <label style="font-size: 1rem; font-weight: 700; color: var(--accent);"><i data-lucide="refresh-cw" style="width:16px;height:16px;vertical-align:middle;margin-right:6px;"></i> 자동 업데이트 배포</label>
-                        <p style="color: var(--text-muted); font-size: 0.83rem; margin: 6px 0 16px;">아래에 새 버전 정보를 입력하고 저장하면, 클라이언트 PC가 다음 하트비트(최대 60초)에 자동으로 다운로드·설치합니다.</p>
-                        <div class="form-group">
-                            <label>새 버전 번호 <span style="color:var(--text-muted);font-size:0.8rem;">(예: 1.2.0)</span></label>
-                            <input type="text" id="updateVersion" class="form-control" placeholder="예: 1.2.0">
-                        </div>
-                        <div class="form-group">
-                            <label>설치파일 다운로드 URL <span style="color:var(--danger);margin-left:3px;">*</span></label>
-                            <input type="url" id="updateUrl" class="form-control" placeholder="https://example.com/OksooSecurity_Setup.exe">
-                        </div>
-                        <div class="form-group">
-                            <label>SHA-256 체크섬 <span style="color:var(--text-muted);font-size:0.8rem;">(선택 — 없으면 검증 생략)</span></label>
-                            <input type="text" id="updateSha256" class="form-control" placeholder="e.g. a1b2c3d4...">
-                        </div>
-                        <div style="display:flex;gap:10px;margin-top:8px;">
-                            <button class="btn primary" onclick="saveUpdateSettings()" style="flex:1;"><i data-lucide="upload-cloud"></i> 업데이트 배포 저장</button>
-                            <button class="btn" onclick="clearUpdateSettings()" style="flex:0 0 auto;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);border-radius:8px;padding:10px 18px;cursor:pointer;"><i data-lucide="x"></i> 초기화</button>
-                        </div>
-                        <div id="updateSaveMsg" style="margin-top:10px;font-weight:500;display:none;"></div>
-                    </div>
                 </div>
             </div>
 
@@ -823,6 +810,101 @@
                     </table>
                 </div>
                 <div id="licensePcCards" class="mobile-only-cards" style="display: none; flex-direction: column; gap: 12px; margin-top: 1rem; margin-bottom: 2rem;"></div>
+            </div>
+
+            <!-- REMOTE UPDATE TAB -->
+            <div id="tab-update" class="data-section">
+                <div class="section-header">
+                    <h2 class="section-title"><i data-lucide="upload-cloud" style="color:var(--primary);"></i> 원격 자동 업데이트</h2>
+                    <button class="btn" onclick="loadUpdatePanel()"><i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> 새로고침</button>
+                </div>
+                <div style="background: rgba(0,240,255,0.05); border: 1px solid rgba(0,240,255,0.2); border-radius: 12px; padding: 12px 16px; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                    <i data-lucide="info" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;"></i>
+                    <strong>무료 권장:</strong> 설치 파일을 <strong>GitHub Releases</strong>에 올린 뒤 다운로드 URL만 붙여 넣으세요.
+                    Supabase 저장소 용량을 쓰지 않고도, 대상 PC가 <strong>다음 접속(최대 5분)</strong> 시 자동 다운로드·설치·재시작합니다.
+                </div>
+                <div id="updateBucketWarning" style="display:none; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #fbbf24; border-radius: 12px; padding: 12px 16px; margin-bottom: 1.5rem; font-size: 0.85rem;"></div>
+
+                <div class="glass-panel" style="padding: 1.5rem; margin-bottom: 2rem;">
+                    <h3 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1rem;">현재 배포된 버전</h3>
+                    <div id="currentUpdateInfo" style="color: var(--text-muted);">불러오는 중...</div>
+                </div>
+
+                <div class="glass-panel" style="padding: 2rem; max-width: 720px; margin-bottom: 2rem;">
+                    <h3 style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1rem;">새 버전 배포</h3>
+                    <div class="form-group">
+                        <label>배포 방식</label>
+                        <div style="display:flex; gap: 1.5rem; margin-top: 6px; flex-wrap:wrap;">
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+                                <input type="radio" name="updateDeployMode" id="updateDeployUrl" value="url" checked onchange="toggleUpdateDeployMode()"> 다운로드 URL (무료 · 권장)
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+                                <input type="radio" name="updateDeployMode" id="updateDeployFile" value="file" onchange="toggleUpdateDeployMode()"> 파일 직접 업로드 (Supabase)
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>버전 (package.json의 version 값과 동일하게 입력)</label>
+                        <input type="text" id="updateVersionInput" class="form-control" placeholder="예: 1.0.1">
+                    </div>
+                    <div id="updateUrlModeFields">
+                        <div class="form-group">
+                            <label>설치 파일 다운로드 URL</label>
+                            <input type="url" id="updateDownloadUrlInput" class="form-control" placeholder="https://github.com/계정/저장소/releases/download/v1.0.1/OksooSecurity_Setup.exe">
+                            <div style="font-size:0.78rem; color:var(--text-muted); margin-top:6px; line-height:1.45;">
+                                1) GitHub에서 Releases → Draft a new release → .exe 첨부 → Publish<br>
+                                2) 생성된 파일의 다운로드 링크를 여기에 붙여 넣기 (파일당 2GB · 대역폭 무제한 무료)
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>파일 크기(바이트, 선택) / SHA-256(선택)</label>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <input type="number" id="updateSizeInput" class="form-control" placeholder="크기(바이트)" style="flex:1; min-width:140px;">
+                                <input type="text" id="updateSha256Input" class="form-control" placeholder="SHA-256 (선택)" style="flex:2; min-width:200px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="updateFileModeFields" style="display:none;">
+                        <div class="form-group">
+                            <label>설치 파일 (OksooSecurity_Setup.exe)</label>
+                            <input type="file" id="updateFileInput" class="form-control" accept=".exe">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>배포 노트 (선택)</label>
+                        <textarea id="updateNotesInput" class="form-control" rows="3" placeholder="이번 업데이트 변경 사항을 적어두면 나중에 참고하기 좋습니다."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>배포 대상</label>
+                        <div style="display:flex; gap: 1.5rem; margin-top: 6px;">
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+                                <input type="radio" name="updateTargetMode" id="updateTargetAll" value="all" checked onchange="toggleUpdateTargetList()"> 전체 PC
+                            </label>
+                            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+                                <input type="radio" name="updateTargetMode" id="updateTargetSelected" value="selected" onchange="toggleUpdateTargetList()"> 선택한 PC만
+                            </label>
+                        </div>
+                        <div id="updateTargetPcList" style="display:none; margin-top: 12px; max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.15); border-radius: 10px; padding: 10px; border: 1px solid var(--border-light);"></div>
+                    </div>
+                    <div id="updateUploadProgressWrap" style="display:none; margin-top: 1rem;">
+                        <div style="background: rgba(255,255,255,0.08); border-radius: 8px; height: 10px; overflow: hidden;">
+                            <div id="updateUploadProgressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.2s;"></div>
+                        </div>
+                        <div id="updateUploadProgressLabel" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 6px;">업로드 대기 중...</div>
+                    </div>
+                    <button class="btn primary" style="margin-top: 20px;" id="updatePublishBtn" onclick="uploadAndPublishUpdate()"><i data-lucide="upload-cloud"></i> 배포하기</button>
+                    <div id="updatePublishMsg" style="margin-top: 10px; font-weight: 500; display: none;"></div>
+                </div>
+
+                <div class="section-header"><h2 class="section-title"><i data-lucide="monitor"></i> PC별 설치 버전 · 업데이트 진행 상태</h2></div>
+                <div class="desktop-table-wrap glass-panel table-wrap" style="overflow-x: auto; margin-bottom: 3rem;">
+                    <table class="custom-table">
+                        <thead><tr><th>디바이스명</th><th>별명</th><th>설치된 버전</th><th>업데이트 상태</th><th>마지막 접속</th></tr></thead>
+                        <tbody id="updatePcStatusBody">
+                            <tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">불러오는 중...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- GUIDE TAB -->
@@ -900,6 +982,7 @@
         const SESSION_KEY = 'oksooht_admin_session';
         let pcNicknameMap = new Map();
         let allMailLogs = [];
+        let lastPcsList = [];
 
         async function updatePcNicknameMap() {
             try {
@@ -1127,7 +1210,7 @@
             }
         }
 
-        const VALID_TABS = ['dashboard', 'approvals', 'settings', 'license', 'guide', 'mail-logs'];
+        const VALID_TABS = ['dashboard', 'approvals', 'settings', 'license', 'update', 'guide', 'mail-logs'];
 
         function switchTab(tabId, el) {
             if (!VALID_TABS.includes(tabId)) tabId = 'dashboard';
@@ -1148,6 +1231,7 @@
                 approvals: '결재 / 승인함', 
                 settings: '글로벌 정책 설정', 
                 license: '라이선스 관리', 
+                update: '원격 업데이트',
                 guide: '프로그램 · 사용법',
                 'mail-logs': '실시간 메일 감시 로그'
             };
@@ -1156,6 +1240,7 @@
             if (tabId === 'dashboard' || tabId === 'approvals') fetchDashboard();
             if (tabId === 'license') loadLicenseData();
             if (tabId === 'mail-logs') fetchMailLogs();
+            if (tabId === 'update') loadUpdatePanel();
             if (tabId === 'dashboard') {
                 lastAlertsCheckedTime = new Date().toISOString();
                 localStorage.setItem('lastAlertsCheckedTime', lastAlertsCheckedTime);
@@ -1308,16 +1393,17 @@
                 const container = document.getElementById('pcTableBody');
                 if (container) {
                     if (!data || data.length === 0) {
-                        container.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>';
+                        container.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">등록된 디바이스가 없습니다.</td></tr>';
                     } else {
                         container.innerHTML = data.map(pc => {
-                            const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 360000);
+                            const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 900000);
                             return `
                             <tr>
                                 <td style="font-weight: 500;">${escHtml(pc.hostname)}</td>
                                 ${renderPcNicknameCell(pc)}
                                 <td style="color: var(--text-muted); font-family: monospace;">${escHtml(pc.mac_address)}</td>
                                 <td style="font-family: monospace;">${escHtml(pc.ip_address || '-')}</td>
+                                <td style="font-family: monospace; font-size:0.85rem;">${pc.app_version ? 'v' + escHtml(pc.app_version) : '<span style="color:var(--text-muted)">-</span>'}</td>
                                 <td style="color: ${isOnline ? 'var(--success)' : 'var(--text-muted)'}">${isOnline ? '● Online' : '○ Offline'}</td>
                             </tr>
                         `}).join('');
@@ -1330,7 +1416,7 @@
                         cardContainer.innerHTML = '<div class="approval-cards-empty">등록된 디바이스가 없습니다.</div>';
                     } else {
                         cardContainer.innerHTML = data.map(pc => {
-                            const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 360000);
+                            const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 900000);
                             const macEnc = encodeURIComponent(pc.mac_address || '');
                             const nick = pc.username || '';
                             const nicknameView = `
@@ -1400,15 +1486,37 @@
 
         function parseApprovalMeta(app) {
             const details = app.details && typeof app.details === 'object' ? app.details : {};
-            const raw = app.recipient || details.recipient || '';
+            let raw = app.recipient || details.recipient || '';
             let meta = {};
-            if (typeof raw === 'object' && raw !== null) meta = raw;
-            else if (typeof raw === 'string' && raw.trim().startsWith('{')) {
-                try { meta = JSON.parse(raw); } catch (_) { meta = { value: raw }; }
-            } else if (raw) {
+            
+            if (typeof raw === 'string') {
+                raw = raw.trim();
+                while (raw.startsWith('{') || raw.startsWith('"')) {
+                    try {
+                        const parsed = JSON.parse(raw);
+                        if (typeof parsed === 'object' && parsed !== null) {
+                            raw = parsed;
+                            break;
+                        } else if (typeof parsed === 'string') {
+                            raw = parsed.trim();
+                        } else {
+                            break;
+                        }
+                    } catch (_) {
+                        break;
+                    }
+                }
+            }
+            
+            if (typeof raw === 'object' && raw !== null) {
+                meta = raw;
+            } else if (typeof raw === 'string' && raw) {
                 meta = { value: raw };
             }
-            return { ...meta, ...details, type: app.request_type || meta.type || details.type };
+            
+            const merged = { value: '', ...details, ...meta };
+            merged.type = app.request_type || meta.type || details.type || merged.type || '';
+            return merged;
         }
 
         function formatApprovalFilename(app) {
@@ -1510,6 +1618,8 @@
 
                 const pcNick = pcNicknameMap.get(app.pc_name) || pcNicknameMap.get(app.requester) || '';
                 const pcDisplay = pcNick ? `${pcNick} (${app.pc_name || app.requester})` : (app.pc_name || app.requester || 'PC');
+                
+                const requestTime = app.timestamp ? new Date(app.timestamp).toLocaleString('ko-KR') : '-';
 
                 let actionHtml = app.status === 'pending' ? `
                     <div class="action-cell">
@@ -1523,7 +1633,8 @@
                     <tr>
                         <td class="col-pc"><strong>${typeTag}</strong> ${escHtml(pcDisplay)}<br><span style="font-size:0.8rem;color:var(--text-muted)">${escHtml(app.ip_address || '-')}</span></td>
                         <td class="col-content" style="color:var(--primary)">${displayName}</td>
-                        <td style="font-family:monospace;font-size:0.85rem">${escHtml(app.requester || '-')}</td>
+                        <td class="col-user" style="font-family:monospace;font-size:0.85rem">${escHtml(app.requester || '-')}</td>
+                        <td class="col-time" style="font-size:0.85rem;color:var(--text-muted)">${requestTime}</td>
                         <td class="col-status">${statusHtml}</td>
                         <td class="col-action">${actionHtml}</td>
                     </tr>`;
@@ -1535,6 +1646,7 @@
                     <td class="col-content" style="color:var(--primary)">${displayName}</td>
                     <td class="col-detail">${detailHtml}</td>
                     <td class="col-user" style="font-family:monospace;font-size:0.85rem">${escHtml(app.requester || '-')}</td>
+                    <td class="col-time" style="font-size:0.85rem;color:var(--text-muted)">${requestTime}</td>
                     <td class="col-status">${statusHtml}</td>
                     <td class="col-action">${actionHtml}</td>
                 </tr>`;
@@ -1565,6 +1677,7 @@
 
                 const pcNick = pcNicknameMap.get(app.pc_name) || pcNicknameMap.get(app.requester) || '';
                 const pcDisplay = pcNick ? `${pcNick} (${app.pc_name || app.requester})` : (app.pc_name || app.requester || '알 수 없음');
+                const requestTime = app.timestamp ? new Date(app.timestamp).toLocaleString('ko-KR') : '-';
 
                 return `
                 <article class="approval-card status-${statusClass}">
@@ -1577,6 +1690,7 @@
                         <span>PC: ${escHtml(pcDisplay)}</span>
                         <span>IP: ${escHtml(app.ip_address || '-')}</span>
                         <span>요청자: ${escHtml(app.requester || '-')}</span>
+                        <span>요청 일시: ${requestTime}</span>
                     </div>
                     ${detailHtml ? '<div class="approval-card-detail">' + detailHtml + '</div>' : ''}
                     ${actions}
@@ -1733,14 +1847,6 @@
                 if (usbEl) usbEl.checked = safeData.usb_blocking_enabled === true;
                 
                 
-                // 업데이트 설정 불러오기
-                const updateVersionEl = document.getElementById('updateVersion');
-                const updateUrlEl = document.getElementById('updateUrl');
-                const updateSha256El = document.getElementById('updateSha256');
-                if (updateVersionEl) updateVersionEl.value = safeData.update_version || '';
-                if (updateUrlEl) updateUrlEl.value = safeData.update_url || '';
-                if (updateSha256El) updateSha256El.value = safeData.update_sha256 || '';
-
                 renderTags();
                 updateDashboardExtsList();
             } catch (e) {
@@ -1806,60 +1912,6 @@
             } catch (e) { console.error(e); alert('저장 실패'); }
         }
 
-        async function saveUpdateSettings() {
-            const version = (document.getElementById('updateVersion')?.value || '').trim();
-            const url     = (document.getElementById('updateUrl')?.value || '').trim();
-            const sha256  = (document.getElementById('updateSha256')?.value || '').trim();
-            const msgEl   = document.getElementById('updateSaveMsg');
-
-            if (!version || !url) {
-                alert('버전 번호와 다운로드 URL은 필수입니다.');
-                return;
-            }
-            if (!/^https?:\/\/.+\.exe$/i.test(url)) {
-                alert('URL은 http(s)://로 시작하고 .exe로 끝나야 합니다.');
-                return;
-            }
-
-            try {
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_version', value: version }) });
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_url',     value: url }) });
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_sha256',  value: sha256 || '' }) });
-
-                if (msgEl) {
-                    msgEl.style.display = 'block';
-                    msgEl.style.color = 'var(--success)';
-                    msgEl.textContent = `✅ v${version} 배포 저장 완료 — 클라이언트가 다음 하트비트에 자동 설치합니다.`;
-                    setTimeout(() => { msgEl.style.display = 'none'; }, 5000);
-                }
-            } catch (e) {
-                if (msgEl) {
-                    msgEl.style.display = 'block';
-                    msgEl.style.color = 'var(--danger)';
-                    msgEl.textContent = '❌ 저장 실패: ' + e.message;
-                }
-            }
-        }
-
-        async function clearUpdateSettings() {
-            if (!confirm('업데이트 배포 설정을 초기화하시겠습니까? 클라이언트가 더 이상 업데이트를 받지 않습니다.')) return;
-            try {
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_version', value: '' }) });
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_url',     value: '' }) });
-                await fetch(`${API_BASE}/settings`, { method: 'PUT', headers: HEADERS, body: JSON.stringify({ key: 'update_sha256',  value: '' }) });
-                document.getElementById('updateVersion').value = '';
-                document.getElementById('updateUrl').value = '';
-                document.getElementById('updateSha256').value = '';
-                const msgEl = document.getElementById('updateSaveMsg');
-                if (msgEl) {
-                    msgEl.style.display = 'block';
-                    msgEl.style.color = 'var(--text-muted)';
-                    msgEl.textContent = '업데이트 배포 설정이 초기화되었습니다.';
-                    setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
-                }
-            } catch (e) { alert('초기화 실패: ' + e.message); }
-        }
-
         function applyStats(data, approvals) {
             if (!data) return;
             const onlineEl = document.getElementById('onlinePcs');
@@ -1908,8 +1960,10 @@
                 applyStats(data.stats, data.approvals);
                 renderLogs(data.logs || []);
                 updateUnreadAlertsCount(data.logs || []);
+                lastPcsList = data.pcs || [];
                 renderPCs(data.pcs || []);
                 renderLicensePcs(data.pcs || []);
+                if (activeTab === 'update') renderUpdatePcStatus(lastPcsList);
                 const usbApprovals = filterUsbApprovals(data.approvals || []);
                 processNewApprovalNotifications(usbApprovals);
                 renderApprovalRows(usbApprovals.filter(a => a.status === 'pending'), 'dashboardApprovalBody');
@@ -1951,7 +2005,7 @@
                     cardsContainer.innerHTML = '<div class="approval-cards-empty">등록된 PC 없음</div>';
                 } else {
                     cardsContainer.innerHTML = data.map(pc => {
-                        const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 360000);
+                        const isOnline = pc.is_online ?? ((new Date() - new Date(pc.last_seen)) < 900000);
                         const macEnc = encodeURIComponent(pc.mac_address || '');
                         const nick = pc.username || '';
                         const nicknameView = `
@@ -2229,7 +2283,46 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
         }
 
-        function renderMailLogsList(logs) {
+        // 메일 감사는 확장·SSL 프록시·UIA 등 여러 채널이 동시에 감시하므로 같은 메일 1건이
+        // 채널별로 각각 로그에 남을 수 있음(누락 방지를 위해 서버는 절대 드롭하지 않음).
+        // 화면에서는 같은 PC + 동일 내용(dedupe_key)이 90초 내에 반복되면 1건으로 묶어서 보여줌.
+        function groupDuplicateMailLogs(logs) {
+            const groups = [];
+            const openGroupByKey = new Map();
+            (logs || []).forEach(log => {
+                const details = log.details || {};
+                const dedupeKey = details.dedupe_key;
+                const src = details.source || details.channel || 'unknown';
+                if (!dedupeKey) {
+                    groups.push({ ...log, _sources: [src], _dupCount: 1 });
+                    return;
+                }
+                const groupKey = `${log.hostname}|${dedupeKey}`;
+                const logTime = new Date(log.created_at).getTime();
+                const existing = openGroupByKey.get(groupKey);
+                if (existing && (existing._refTime - logTime) <= 90000) {
+                    existing._dupCount += 1;
+                    if (!existing._sources.includes(src)) existing._sources.push(src);
+                    existing._refTime = logTime;
+                    return;
+                }
+                const newGroup = { ...log, _sources: [src], _dupCount: 1, _refTime: logTime };
+                openGroupByKey.set(groupKey, newGroup);
+                groups.push(newGroup);
+            });
+            return groups;
+        }
+
+        const SOURCE_LABELS = { network_proxy: 'SSL 프록시', uia_burst: '화면 감시(UIA)', extension: '브라우저 확장', unknown: '알수없음' };
+
+        function renderDuplicateBadge(group) {
+            if (!group._dupCount || group._dupCount <= 1) return '';
+            const labels = group._sources.map(s => SOURCE_LABELS[s] || s).join(', ');
+            return `<span title="감시 채널: ${escHtml(labels)}" style="display:inline-flex; align-items:center; gap:3px; margin-left:6px; padding:1px 7px; border-radius:999px; background:rgba(0,240,255,0.12); color:var(--primary); font-size:0.72rem; font-weight:600; vertical-align:middle;"><i data-lucide="layers" style="width:11px;height:11px;"></i>${group._dupCount}중 감지</span>`;
+        }
+
+        function renderMailLogsList(rawLogs) {
+            const logs = groupDuplicateMailLogs(rawLogs);
             const tbody = document.getElementById('mailLogsTableBody');
             if (tbody) {
                 if (!logs || logs.length === 0) {
@@ -2262,7 +2355,7 @@
                             <td style="font-family:'JetBrains Mono', monospace; font-size:0.8rem; color:var(--text-muted);">${new Date(log.created_at).toLocaleString()}</td>
                             <td><strong>${escHtml(pcDisplay)}</strong><br><span style="font-size:0.78rem;color:var(--text-muted);">${escHtml(browser)}</span></td>
                             <td style="color:var(--secondary-glow); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escHtml(recipients)}">${escHtml(recipients)}</td>
-                            <td style="font-weight:500; color:var(--text-main); max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escHtml(subject)}">${escHtml(subject)}</td>
+                            <td style="font-weight:500; color:var(--text-main); max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escHtml(subject)}">${escHtml(subject)}${renderDuplicateBadge(log)}</td>
                             <td style="color:var(--text-muted); font-size:0.85rem; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escHtml(bodyPreview)}</td>
                             <td>${attachmentHtml}</td>
                         </tr>`;
@@ -2304,7 +2397,7 @@
                                 <span class="approval-card-type" style="background: rgba(112, 0, 255, 0.1); color: #b070ff;"><i data-lucide="mail" style="width:12px;height:12px;vertical-align:middle;margin-right:3px;"></i>메일 발송</span>
                                 <span style="font-family:'JetBrains Mono'; font-size:0.75rem; color:var(--text-muted);">${new Date(log.created_at).toLocaleString()}</span>
                             </div>
-                            <div class="approval-card-title" style="font-size: 0.95rem; margin-bottom: 6px;">${escHtml(subject)}</div>
+                            <div class="approval-card-title" style="font-size: 0.95rem; margin-bottom: 6px;">${escHtml(subject)}${renderDuplicateBadge(log)}</div>
                             <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">
                                 <strong>PC:</strong> ${escHtml(pcDisplay)} (${escHtml(browser)})
                             </div>
@@ -2376,6 +2469,284 @@
         function closeMailDetailModal() {
             document.getElementById('mailDetailOverlay').style.display = 'none';
             document.getElementById('mailDetailModal').style.display = 'none';
+        }
+
+        // ─── 원격 업데이트 탭 ───
+        let currentAppUpdate = null;
+
+        async function loadUpdatePanel() {
+            try {
+                const res = await fetch(`${API_BASE}/app-update`, { headers: HEADERS });
+                const data = await res.json();
+                if (!res.ok) {
+                    document.getElementById('currentUpdateInfo').innerHTML = `<span style="color:var(--danger)">불러오기 실패: ${escHtml(data.error || res.status)}</span>`;
+                    return;
+                }
+                currentAppUpdate = data.update || null;
+                renderCurrentUpdateInfo(currentAppUpdate);
+                const warnBox = document.getElementById('updateBucketWarning');
+                if (data.bucketLimitWarning) {
+                    warnBox.style.display = 'block';
+                    warnBox.textContent = data.bucketLimitWarning;
+                } else {
+                    warnBox.style.display = 'none';
+                }
+                await updatePcNicknameMap();
+                if (!lastPcsList.length) await fetchDashboard();
+                renderUpdateTargetPcCheckboxes(lastPcsList);
+                renderUpdatePcStatus(lastPcsList);
+            } catch (e) {
+                console.error('[Update] load failed', e);
+                document.getElementById('currentUpdateInfo').innerHTML = `<span style="color:var(--danger)">불러오기 실패: ${escHtml(e.message)}</span>`;
+            }
+        }
+
+        function renderCurrentUpdateInfo(update) {
+            const box = document.getElementById('currentUpdateInfo');
+            if (!update || !update.published) {
+                box.innerHTML = '<span>현재 배포 중인 업데이트가 없습니다.</span>';
+                return;
+            }
+            const targetLabel = update.target_mode === 'selected'
+                ? `선택 PC ${(update.target_macs || []).length}대`
+                : '전체 PC';
+            const sourceLabel = update.download_url
+                ? `외부 URL`
+                : 'Supabase Storage';
+            const sourceDetail = update.download_url
+                ? `<div style="margin-top:8px; font-size:0.8rem; word-break:break-all;">URL: <a href="${escHtml(update.download_url)}" target="_blank" rel="noopener" style="color:var(--primary);">${escHtml(update.download_url)}</a></div>`
+                : '';
+            box.innerHTML = `
+                <div style="display:flex; flex-wrap:wrap; gap: 1.5rem; align-items:center;">
+                    <div><strong style="color:var(--primary); font-size:1.1rem;">v${escHtml(update.version)}</strong></div>
+                    <div>파일: ${escHtml(update.filename || '-')} (${update.size ? formatBytes(update.size) : '크기 미지정'})</div>
+                    <div>방식: ${escHtml(sourceLabel)}</div>
+                    <div>대상: ${escHtml(targetLabel)}</div>
+                    <div>배포 시각: ${update.published_at ? new Date(update.published_at).toLocaleString() : '-'}</div>
+                    <button class="btn" style="color:var(--danger); border-color:var(--danger);" onclick="unpublishUpdate()"><i data-lucide="x-circle" style="width:14px;height:14px;"></i> 배포 중단</button>
+                </div>
+                ${sourceDetail}
+                ${update.notes ? `<div style="margin-top:10px; color:var(--text-muted); font-size:0.85rem; white-space:pre-wrap;">${escHtml(update.notes)}</div>` : ''}
+            `;
+            lucide.createIcons();
+        }
+
+        function toggleUpdateDeployMode() {
+            const useUrl = document.getElementById('updateDeployUrl').checked;
+            document.getElementById('updateUrlModeFields').style.display = useUrl ? 'block' : 'none';
+            document.getElementById('updateFileModeFields').style.display = useUrl ? 'none' : 'block';
+        }
+
+        function toggleUpdateTargetList() {
+            const selected = document.getElementById('updateTargetSelected').checked;
+            document.getElementById('updateTargetPcList').style.display = selected ? 'block' : 'none';
+        }
+
+        function renderUpdateTargetPcCheckboxes(pcs) {
+            const wrap = document.getElementById('updateTargetPcList');
+            if (!wrap) return;
+            const selectedMacs = new Set((currentAppUpdate && currentAppUpdate.target_macs) || []);
+            if (!pcs || pcs.length === 0) {
+                wrap.innerHTML = '<span style="color:var(--text-muted); font-size:0.85rem;">등록된 PC가 없습니다.</span>';
+                return;
+            }
+            wrap.innerHTML = pcs.map(pc => {
+                const nick = pc.username || '';
+                const label = nick ? `${escHtml(nick)} (${escHtml(pc.hostname)})` : escHtml(pc.hostname);
+                const checked = selectedMacs.has(pc.mac_address) ? 'checked' : '';
+                return `
+                    <label style="display:flex; align-items:center; gap:8px; padding:6px 4px; font-size:0.85rem; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <input type="checkbox" class="update-target-pc-checkbox" value="${escHtml(pc.mac_address)}" ${checked}>
+                        <span>${label}</span>
+                        <span style="color:var(--text-muted); font-family:monospace; font-size:0.75rem; margin-left:auto;">${escHtml(pc.mac_address)}</span>
+                    </label>
+                `;
+            }).join('');
+        }
+
+        function getSelectedTargetMacs() {
+            return [...document.querySelectorAll('.update-target-pc-checkbox:checked')].map(el => el.value);
+        }
+
+        function formatUpdateStatusBadge(status) {
+            const map = {
+                downloading: ['다운로드 중', '#38bdf8'],
+                installing: ['설치 중 (재시작 예정)', '#f59e0b'],
+                failed: ['실패 — 로그 확인 필요', 'var(--danger)']
+            };
+            if (!status || !map[status]) return '<span style="color:var(--text-muted)">-</span>';
+            const [label, color] = map[status];
+            return `<span style="color:${color}; font-weight:500;">● ${label}</span>`;
+        }
+
+        function renderUpdatePcStatus(pcs) {
+            const tbody = document.getElementById('updatePcStatusBody');
+            if (!tbody) return;
+            if (!pcs || pcs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">등록된 PC 없음</td></tr>';
+                return;
+            }
+            tbody.innerHTML = pcs.map(pc => {
+                const version = pc.app_version ? `v${escHtml(pc.app_version)}` : '<span style="color:var(--text-muted)">미확인 (구버전)</span>';
+                const statusInfo = formatUpdateStatusBadge(pc.update_status);
+                return `
+                    <tr>
+                        <td style="font-weight:500;">${escHtml(pc.hostname || '-')}</td>
+                        <td>${escHtml(pc.username || '-')}</td>
+                        <td style="font-family:monospace;">${version}</td>
+                        <td>${statusInfo}</td>
+                        <td style="font-size:0.85rem;color:var(--text-muted);">${pc.last_seen ? new Date(pc.last_seen).toLocaleString() : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function uploadFileWithProgress(url, file, onProgress) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', url, true);
+                xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable && onProgress) {
+                        onProgress(Math.round((e.loaded / e.total) * 100));
+                    }
+                };
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) resolve();
+                    else reject(new Error(`업로드 실패 (HTTP ${xhr.status})`));
+                };
+                xhr.onerror = () => reject(new Error('업로드 중 네트워크 오류'));
+                xhr.send(file);
+            });
+        }
+
+        async function uploadAndPublishUpdate() {
+            const version = document.getElementById('updateVersionInput').value.trim();
+            const notes = document.getElementById('updateNotesInput').value.trim();
+            const targetMode = document.getElementById('updateTargetSelected').checked ? 'selected' : 'all';
+            const targetMacs = targetMode === 'selected' ? getSelectedTargetMacs() : [];
+            const useUrl = document.getElementById('updateDeployUrl').checked;
+            const msgBox = document.getElementById('updatePublishMsg');
+            const btn = document.getElementById('updatePublishBtn');
+            const progressWrap = document.getElementById('updateUploadProgressWrap');
+            const progressBar = document.getElementById('updateUploadProgressBar');
+            const progressLabel = document.getElementById('updateUploadProgressLabel');
+
+            msgBox.style.display = 'none';
+            if (!version) { alert('버전을 입력해 주세요. (예: 1.0.1)'); return; }
+            if (targetMode === 'selected' && targetMacs.length === 0) { alert('배포 대상 PC를 1대 이상 선택해 주세요.'); return; }
+
+            btn.disabled = true;
+
+            try {
+                let publishData;
+
+                if (useUrl) {
+                    const downloadUrl = document.getElementById('updateDownloadUrlInput').value.trim();
+                    const sizeVal = parseInt(document.getElementById('updateSizeInput').value, 10) || 0;
+                    const sha256 = document.getElementById('updateSha256Input').value.trim() || null;
+                    if (!/^https?:\/\//i.test(downloadUrl)) {
+                        alert('유효한 http(s) 다운로드 URL을 입력해 주세요.');
+                        btn.disabled = false;
+                        return;
+                    }
+                    let filename = 'OksooSecurity_Setup.exe';
+                    try { filename = decodeURIComponent(downloadUrl.split('/').pop().split('?')[0]) || filename; } catch (_) {}
+
+                    progressWrap.style.display = 'block';
+                    progressBar.style.width = '100%';
+                    progressLabel.textContent = 'URL 배포 정보 저장 중...';
+
+                    const publishRes = await fetch(`${API_BASE}/app-update`, {
+                        method: 'POST',
+                        headers: HEADERS,
+                        body: JSON.stringify({
+                            action: 'publish-url',
+                            version,
+                            download_url: downloadUrl,
+                            filename,
+                            size: sizeVal,
+                            sha256,
+                            notes,
+                            target_mode: targetMode,
+                            target_macs: targetMacs
+                        })
+                    });
+                    publishData = await publishRes.json();
+                    if (!publishRes.ok) throw new Error(publishData.error || '배포 저장 실패');
+                } else {
+                    const fileInput = document.getElementById('updateFileInput');
+                    const file = fileInput.files && fileInput.files[0];
+                    if (!file) { alert('설치 파일(.exe)을 선택해 주세요.'); btn.disabled = false; return; }
+
+                    progressWrap.style.display = 'block';
+                    progressBar.style.width = '0%';
+                    progressLabel.textContent = '업로드 URL 발급 중...';
+
+                    const urlRes = await fetch(`${API_BASE}/app-update`, {
+                        method: 'POST',
+                        headers: HEADERS,
+                        body: JSON.stringify({ action: 'upload-url', filename: file.name })
+                    });
+                    const urlData = await urlRes.json();
+                    if (!urlRes.ok) throw new Error(urlData.error || '업로드 URL 발급 실패');
+                    if (urlData.bucketLimitWarning) {
+                        const warnBox = document.getElementById('updateBucketWarning');
+                        warnBox.style.display = 'block';
+                        warnBox.textContent = urlData.bucketLimitWarning;
+                    }
+
+                    progressLabel.textContent = `업로드 중... (${formatBytes(file.size)})`;
+                    await uploadFileWithProgress(urlData.uploadUrl, file, (pct) => {
+                        progressBar.style.width = pct + '%';
+                        progressLabel.textContent = `업로드 중... ${pct}% (${formatBytes(file.size)})`;
+                    });
+
+                    progressLabel.textContent = '배포 정보 저장 중...';
+                    const publishRes = await fetch(`${API_BASE}/app-update`, {
+                        method: 'POST',
+                        headers: HEADERS,
+                        body: JSON.stringify({
+                            action: 'publish',
+                            version, path: urlData.path, filename: file.name, size: file.size,
+                            notes, target_mode: targetMode, target_macs: targetMacs
+                        })
+                    });
+                    publishData = await publishRes.json();
+                    if (!publishRes.ok) throw new Error(publishData.error || '배포 저장 실패');
+                    fileInput.value = '';
+                }
+
+                progressLabel.textContent = '완료';
+                msgBox.style.display = 'block';
+                msgBox.style.color = 'var(--success)';
+                msgBox.textContent = `✅ v${version} 배포 완료 — 대상 PC가 다음 접속 시(최대 5분) 자동으로 업데이트됩니다.`;
+                currentAppUpdate = publishData.update;
+                renderCurrentUpdateInfo(currentAppUpdate);
+            } catch (e) {
+                console.error('[Update] publish failed', e);
+                msgBox.style.display = 'block';
+                msgBox.style.color = 'var(--danger)';
+                msgBox.textContent = '❌ 배포 실패: ' + e.message;
+            } finally {
+                btn.disabled = false;
+                setTimeout(() => { progressWrap.style.display = 'none'; }, 3000);
+            }
+        }
+
+        async function unpublishUpdate() {
+            if (!confirm('현재 배포를 중단하시겠습니까? 이미 설치를 시작한 PC에는 영향이 없습니다.')) return;
+            try {
+                const res = await fetch(`${API_BASE}/app-update`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify({ action: 'unpublish' })
+                });
+                if (!res.ok) throw new Error('배포 중단 실패');
+                await loadUpdatePanel();
+            } catch (e) {
+                alert('배포 중단 실패: ' + e.message);
+            }
         }
 
         if (isAdminLoggedIn()) {

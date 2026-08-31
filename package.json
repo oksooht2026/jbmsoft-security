@@ -1,6 +1,6 @@
 {
   "name": "oksoo-security",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "옥수하이테크 보안 솔루션",
   "main": "main.js",
   "scripts": {
